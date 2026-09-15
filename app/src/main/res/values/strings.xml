@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">HomeMediaViewer</string>
+    <string name="permission_denied">需要媒体读取权限才能扫描本机媒体</string>
+    <string name="server_started">服务已启动，端口 %1$d</string>
+    <string name="local_ips">本机 IP 列表</string>
+    <string name="local_media">本机媒体</string>
+    <string name="no_media">未在本机媒体库中找到媒体文件</string>
+    <string name="scanning">扫描媒体中…</string>
+    <string name="play_error">播放失败：%1$s</string>
+    <string name="unknown_duration">时长未知</string>
+</resources>
