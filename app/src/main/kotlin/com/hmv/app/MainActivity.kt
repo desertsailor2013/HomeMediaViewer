@@ -22,6 +22,8 @@ class MainActivity : AppCompatActivity() {
     private var service: MediaServerService? = null
     private var bound = false
     private var nsdHelper: NsdHelper? = null
+    private var currentDevice: NsdHelper.DiscoveredDevice? = null
+    private val remoteClient = RemoteMediaClient()
     private val statusView by lazy { findViewById<TextView>(R.id.status) }
     private val emptyHint by lazy { findViewById<TextView>(R.id.empty_hint) }
     private val mediaAdapter = MediaAdapter { onMediaClicked(it) }
@@ -135,14 +137,36 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun onMediaClicked(item: MediaItem) {
-        val port = service?.port ?: return
-        val url = "http://127.0.0.1:$port/media/${item.id}"
-        startActivity(PlayerActivity.createIntent(this, url, item.title))
+        val device = currentDevice
+        if (device != null) {
+            val url = remoteClient.getMediaUrl(
+                RemoteMediaClient.RemoteDevice(device.name, device.host, device.port),
+                item.id
+            )
+            startActivity(PlayerActivity.createIntent(this, url, item.title))
+        } else {
+            val port = service?.port ?: return
+            val url = "http://127.0.0.1:$port/media/${item.id}"
+            startActivity(PlayerActivity.createIntent(this, url, item.title))
+        }
     }
 
     private fun onDeviceClicked(device: NsdHelper.DiscoveredDevice) {
-        val url = "${device.mediaUrl}"
-        startActivity(PlayerActivity.createIntent(this, url, device.name))
+        currentDevice = device
+        statusView.text = "正在获取 ${device.name} 的媒体列表..."
+
+        val remoteDevice = RemoteMediaClient.RemoteDevice(device.name, device.host, device.port)
+        remoteClient.fetchMediaList(remoteDevice) { result ->
+            runOnUiThread {
+                result.onSuccess { items ->
+                    mediaAdapter.submit(items)
+                    emptyHint.visibility = if (items.isEmpty()) android.view.View.VISIBLE else android.view.View.GONE
+                    statusView.text = "${device.name} - ${items.size} 个媒体文件"
+                }.onFailure { e ->
+                    statusView.text = "获取失败: ${e.message}"
+                }
+            }
+        }
     }
 
     override fun onDestroy() {
