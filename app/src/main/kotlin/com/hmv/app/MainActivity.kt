@@ -24,7 +24,7 @@ class MainActivity : AppCompatActivity() {
 
     private val permissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
-            if (result.values.all { granted -> granted }) startServer() else showPermissionDenied()
+            if (result.values.all { granted -> granted }) startServerAsync() else showPermissionDenied()
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -44,12 +44,12 @@ class MainActivity : AppCompatActivity() {
             val needed = mutableListOf<String>()
             if (!hasPermission(Manifest.permission.READ_MEDIA_VIDEO)) needed += Manifest.permission.READ_MEDIA_VIDEO
             if (!hasPermission(Manifest.permission.READ_MEDIA_AUDIO)) needed += Manifest.permission.READ_MEDIA_AUDIO
-            if (needed.isEmpty()) startServer() else permissionLauncher.launch(needed.toTypedArray())
+            if (needed.isEmpty()) startServerAsync() else permissionLauncher.launch(needed.toTypedArray())
         } else {
             if (!hasPermission(Manifest.permission.READ_EXTERNAL_STORAGE)) {
                 permissionLauncher.launch(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE))
             } else {
-                startServer()
+                startServerAsync()
             }
         }
     }
@@ -63,21 +63,25 @@ class MainActivity : AppCompatActivity() {
         emptyHint.visibility = android.view.View.VISIBLE
     }
 
-    private fun startServer() {
+    private fun startServerAsync() {
         statusView.text = getString(R.string.scanning)
-        val items = MediaScanner(this).scan(MediaScanner.CollectionKind.VIDEO) +
-            MediaScanner(this).scan(MediaScanner.CollectionKind.AUDIO)
-        adapter.submit(items)
-        emptyHint.visibility = if (items.isEmpty()) android.view.View.VISIBLE else android.view.View.GONE
+        Thread {
+            val items = MediaScanner(this).scan(MediaScanner.CollectionKind.VIDEO) +
+                MediaScanner(this).scan(MediaScanner.CollectionKind.AUDIO)
+            runOnUiThread {
+                adapter.submit(items)
+                emptyHint.visibility = if (items.isEmpty()) android.view.View.VISIBLE else android.view.View.GONE
 
-        val repo = ContentMediaRepository(this, items)
-        val s = HttpRangeServer(repo)
-        s.start()
-        server = s
-        statusView.text = getString(R.string.server_started, s.port) + "\n" +
-            getString(R.string.local_ips) + "：\n" +
-            localIps().joinToString("\n") { "  http://$it:${s.port}/media" } +
-            "\n（点击下方条目本地播放验证）"
+                val repo = ContentMediaRepository(this, items)
+                val s = HttpRangeServer(repo)
+                s.start()
+                server = s
+                statusView.text = getString(R.string.server_started, s.port) + "\n" +
+                    getString(R.string.local_ips) + "：\n" +
+                    localIps().joinToString("\n") { "  http://$it:${s.port}/media" } +
+                    "\n（点击下方条目本地播放验证）"
+            }
+        }.start()
     }
 
     private fun onMediaClicked(item: MediaItem) {
@@ -92,7 +96,7 @@ class MainActivity : AppCompatActivity() {
             NetworkInterface.getNetworkInterfaces().toList().forEach { ni ->
                 if (ni.isUp && !ni.isLoopback) {
                     ni.inetAddresses.toList().filter { it is Inet4Address && !it.isLoopbackAddress }
-                        .forEach { result += it.hostAddress }
+                        .forEach { it.hostAddress?.let { addr -> result += addr } }
                 }
             }
         } catch (_: Exception) {}
