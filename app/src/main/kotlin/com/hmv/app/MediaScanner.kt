@@ -5,7 +5,6 @@ import android.content.Context
 import android.provider.MediaStore
 import android.content.ContentUris
 import android.net.Uri
-import android.os.Build
 
 /**
  * 通过 MediaStore 扫描本机媒体库，转为可分享的 [MediaItem]。
@@ -59,14 +58,8 @@ class MediaScanner(private val context: Context) {
     private fun buildThumbnailUri(collection: CollectionKind, dbId: Long): String? {
         return when (collection) {
             CollectionKind.VIDEO -> {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    val thumbUri = MediaStore.Video.Thumbnails.getContentUri(MediaStore.VOLUME_EXTERNAL, dbId)
-                    thumbUri.toString()
-                } else {
-                    val baseUri = ContentUris.withAppendedId(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, dbId)
-                    val thumbUri = Uri.withAppendedPath(baseUri, "thumbnail")
-                    thumbUri.toString()
-                }
+                val baseUri = ContentUris.withAppendedId(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, dbId)
+                baseUri.toString()
             }
             CollectionKind.AUDIO -> {
                 val baseUri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, dbId)
