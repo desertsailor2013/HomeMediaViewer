@@ -1,5 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- 品牌色 -->
+    <color name="colorPrimary">#1E88E5</color>
+    <color name="colorPrimaryDark">#1565C0</color>
+    <color name="colorAccent">#FFC107</color>
+
+    <!-- 筛选按钮 -->
     <color name="filter_selected">#1E88E5</color>
     <color name="filter_unselected">#888888</color>
+
+    <!-- 背景 -->
+    <color name="bg_window">#FFFFFF</color>
+    <color name="bg_surface">#F5F5F5</color>
+    <color name="bg_thumbnail_placeholder">#1A000000</color>
+
+    <!-- 文本 -->
+    <color name="text_primary">#212121</color>
+    <color name="text_secondary">#757575</color>
+    <color name="text_hint">#BDBDBD</color>
+
+    <!-- 搜索框 -->
+    <color name="bg_search">#F0F0F0</color>
+
+    <!-- 设备列表 -->
+    <color name="bg_device_item">#FAFAFA</color>
 </resources>

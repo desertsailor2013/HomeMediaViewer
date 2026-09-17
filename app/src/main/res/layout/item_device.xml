@@ -4,7 +4,7 @@
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:padding="12dp"
-    android:background="?android:attr/selectableItemBackground">
+    android:background="@color/bg_device_item">
 
     <TextView
         android:id="@+id/device_name"
@@ -12,7 +12,7 @@
         android:layout_height="wrap_content"
         android:textSize="16sp"
         android:textStyle="bold"
-        android:textColor="?android:attr/textColorPrimary" />
+        android:textColor="@color/text_primary" />
 
     <TextView
         android:id="@+id/device_address"
@@ -20,5 +20,5 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
         android:textSize="13sp"
-        android:textColor="?android:attr/textColorSecondary" />
+        android:textColor="@color/text_secondary" />
 </LinearLayout>
