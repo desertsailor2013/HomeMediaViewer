@@ -8,7 +8,6 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
-import coil.decode.VideoFrameDecoder
 import coil.request.ImageRequest
 import com.hmv.server.MediaItem
 
@@ -44,25 +43,19 @@ class MediaAdapter(
 
     private fun loadThumbnail(imageView: ImageView, item: MediaItem) {
         val context = imageView.context
+        val thumbnailUri = item.thumbnailUri
+        if (thumbnailUri.isNullOrEmpty()) {
+            imageView.setImageResource(R.drawable.ic_launcher)
+            return
+        }
         val request = ImageRequest.Builder(context)
-            .data(item.thumbnailUri?.let { Uri.parse(it) })
+            .data(Uri.parse(thumbnailUri))
             .crossfade(true)
             .size(168, 168)
             .build()
-
-        if (item.mimeType.startsWith("video")) {
-            imageView.load(request) {
-                decoderFactory { result, options, _ ->
-                    VideoFrameDecoder(result.source, options)
-                }
-                placeholder(R.drawable.ic_launcher_foreground)
-                error(R.drawable.ic_launcher_foreground)
-            }
-        } else {
-            imageView.load(request) {
-                placeholder(R.drawable.ic_launcher_foreground)
-                error(R.drawable.ic_launcher_foreground)
-            }
+        imageView.load(request) {
+            placeholder(R.drawable.ic_launcher)
+            error(R.drawable.ic_launcher)
         }
     }
 

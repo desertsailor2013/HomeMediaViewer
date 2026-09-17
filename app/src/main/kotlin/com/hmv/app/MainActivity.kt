@@ -143,11 +143,11 @@ class MainActivity : AppCompatActivity() {
                 RemoteMediaClient.RemoteDevice(device.name, device.host, device.port),
                 item.id
             )
-            startActivity(PlayerActivity.createIntent(this, url, item.title))
+            startActivity(PlayerActivity.createIntent(this, url, item.title, item.id))
         } else {
             val port = service?.port ?: return
             val url = "http://127.0.0.1:$port/media/${item.id}"
-            startActivity(PlayerActivity.createIntent(this, url, item.title))
+            startActivity(PlayerActivity.createIntent(this, url, item.title, item.id))
         }
     }
 

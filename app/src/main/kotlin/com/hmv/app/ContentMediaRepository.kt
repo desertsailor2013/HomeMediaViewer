@@ -1,15 +1,11 @@
 package com.hmv.app
 
-import android.content.ContentUris
 import android.content.Context
 import android.net.Uri
-import android.os.Build
-import android.provider.MediaStore
 import com.hmv.server.MediaItem
 import com.hmv.server.MediaRepository
 import com.hmv.server.RangeReadable
 import java.io.FileInputStream
-import java.io.InputStream
 
 /**
  * 基于 MediaStore content:// URI 的 [MediaRepository]。
@@ -44,53 +40,7 @@ class ContentMediaRepository(
         }
     }
 
-    override fun getThumbnail(id: String): InputStream? {
-        val item = findById(id) ?: return null
-        return try {
-            if (item.mimeType.startsWith("video")) {
-                getVideoThumbnail(item)
-            } else if (item.mimeType.startsWith("audio")) {
-                getAudioAlbumArt(item)
-            } else {
-                null
-            }
-        } catch (e: Exception) {
-            null
-        }
-    }
-
-    private fun getVideoThumbnail(item: MediaItem): InputStream? {
-        val contentUri = Uri.parse(item.relativePath)
-        val dbId = ContentUris.parseId(contentUri)
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val thumbUri = MediaStore.Video.Thumbnails.getContentUri(
-                MediaStore.VOLUME_EXTERNAL, dbId
-            )
-            context.contentResolver.openInputStream(thumbUri)
-        } else {
-            @Suppress("DEPRECATION")
-            MediaStore.Video.Thumbnails.getThumbnail(
-                context.contentResolver, dbId,
-                MediaStore.Video.Thumbnails.MINI_KIND, null
-            )?.let { bitmap ->
-                val bos = java.io.ByteArrayOutputStream()
-                bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, bos)
-                bitmap.recycle()
-                java.io.ByteArrayInputStream(bos.toByteArray())
-            }
-        }
-    }
-
-    private fun getAudioAlbumArt(item: MediaItem): InputStream? {
-        val contentUri = Uri.parse(item.relativePath)
-        val dbId = ContentUris.parseId(contentUri)
-        val artUri = Uri.withAppendedPath(contentUri, "albumart")
-        return try {
-            context.contentResolver.openInputStream(artUri)
-        } catch (e: Exception) {
-            null
-        }
-    }
+    override fun getThumbnail(id: String): java.io.InputStream? = null
 
     /** 基于文件描述符的 [RangeReadable]，通过 FileChannel 实现 seek。 */
     private class FdRangeReadable(
