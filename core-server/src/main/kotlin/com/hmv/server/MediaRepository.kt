@@ -14,7 +14,8 @@ data class MediaItem(
     val title: String,
     val mimeType: String,
     val size: Long,
-    val relativePath: String
+    val relativePath: String,
+    val thumbnailUri: String? = null
 ) : java.io.Serializable
 
 /**
@@ -51,4 +52,12 @@ interface MediaRepository {
         } catch (e: Exception) {
             null
         }
+
+    /**
+     * 获取媒体缩略图流。
+     *
+     * @param id 来自 [MediaItem.id]
+     * @return 缩略图字节流（JPEG/PNG），调用方负责 close；不支持时返回 null
+     */
+    fun getThumbnail(id: String): java.io.InputStream? = null
 }
