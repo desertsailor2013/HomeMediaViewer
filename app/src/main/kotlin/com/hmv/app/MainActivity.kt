@@ -13,6 +13,7 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.widget.EditText
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -25,6 +26,7 @@ class MainActivity : AppCompatActivity() {
     private var service: MediaServerService? = null
     private var bound = false
     private var nsdHelper: NsdHelper? = null
+    private var networkMonitor: NetworkMonitor? = null
     private var currentDevice: NsdHelper.DiscoveredDevice? = null
     private val remoteClient = RemoteMediaClient()
     private val statusView by lazy { findViewById<TextView>(R.id.status) }
@@ -69,7 +71,23 @@ class MainActivity : AppCompatActivity() {
         }
 
         setupSearchAndFilter()
+        setupNetworkMonitor()
         requestMediaPermissions()
+    }
+
+    private fun setupNetworkMonitor() {
+        networkMonitor = NetworkMonitor(this)
+        networkMonitor?.startListening(object : NetworkMonitor.NetworkListener {
+            override fun onNetworkAvailable() {
+                // 网络恢复
+            }
+
+            override fun onNetworkLost() {
+                runOnUiThread {
+                    Toast.makeText(this@MainActivity, R.string.network_lost, Toast.LENGTH_SHORT).show()
+                }
+            }
+        })
     }
 
     private fun setupSearchAndFilter() {
@@ -176,6 +194,12 @@ class MainActivity : AppCompatActivity() {
             override fun onDeviceLost(device: NsdHelper.DiscoveredDevice) {
                 runOnUiThread {
                     deviceAdapter.removeDevice(device)
+                    // 如果当前选中的设备离线，提示并切回本地媒体
+                    if (currentDevice?.name == device.name) {
+                        currentDevice = null
+                        Toast.makeText(this@MainActivity, R.string.device_offline, Toast.LENGTH_SHORT).show()
+                        startServerAsync()
+                    }
                 }
             }
 
@@ -222,6 +246,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        networkMonitor?.stopListening()
+        networkMonitor = null
         nsdHelper?.stopDiscovery()
         nsdHelper = null
         if (bound) {
