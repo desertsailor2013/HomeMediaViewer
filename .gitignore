@@ -13,3 +13,5 @@ local.properties
 app/build/
 core-server/build/
 build/
+*.jks
+*.keystore

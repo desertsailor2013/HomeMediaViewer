@@ -15,10 +15,20 @@ android {
         versionName = "0.1.0"
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("release-key.jks")
+            storePassword = findProperty("STORE_PASSWORD") as? String ?: "hmv123456"
+            keyAlias = findProperty("KEY_ALIAS") as? String ?: "hmv"
+            keyPassword = findProperty("KEY_PASSWORD") as? String ?: "hmv123456"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 
