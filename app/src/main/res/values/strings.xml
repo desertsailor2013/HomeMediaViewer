@@ -16,4 +16,7 @@
     <string name="filter_audio">音频</string>
     <string name="no_match">没有匹配的媒体文件</string>
     <string name="fullscreen">全屏</string>
+    <string name="network_lost">网络已断开，无法播放远程媒体</string>
+    <string name="network_restored">网络已恢复</string>
+    <string name="device_offline">设备已离线，已切回本地媒体</string>
 </resources>

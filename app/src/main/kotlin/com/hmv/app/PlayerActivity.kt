@@ -12,6 +12,7 @@ import android.view.WindowInsetsController
 import android.widget.ImageButton
 import android.widget.ProgressBar
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
@@ -28,6 +29,7 @@ import androidx.media3.ui.PlayerView
  * 支持：
  * - 播放进度保存与续播
  * - 横竖屏切换 + 沉浸式全屏
+ * - 网络断开检测与提示
  */
 class PlayerActivity : AppCompatActivity() {
 
@@ -39,6 +41,9 @@ class PlayerActivity : AppCompatActivity() {
     private var mediaId: String = ""
     private var seekToOnReady: Long = 0L
     private var isFullscreen = false
+    private var isRemotePlayback = false
+    private var networkMonitor: NetworkMonitor? = null
+    private var isNetworkLost = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,6 +60,7 @@ class PlayerActivity : AppCompatActivity() {
         }
         mediaId = intent.getStringExtra(EXTRA_MEDIA_ID) ?: ""
         title = intent.getStringExtra(EXTRA_TITLE)
+        isRemotePlayback = !url.startsWith("http://127.0.0.1") && !url.startsWith("http://localhost")
 
         // 恢复上次播放进度
         seekToOnReady = if (mediaId.isNotEmpty()) {
@@ -70,9 +76,17 @@ class PlayerActivity : AppCompatActivity() {
         player.addListener(object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
                 when (playbackState) {
-                    Player.STATE_BUFFERING -> loading.visibility = View.VISIBLE
+                    Player.STATE_BUFFERING -> {
+                        loading.visibility = View.VISIBLE
+                        if (isNetworkLost) {
+                            loading.visibility = View.GONE
+                            errorView.text = getString(R.string.network_lost)
+                            errorView.visibility = View.VISIBLE
+                        }
+                    }
                     Player.STATE_READY -> {
                         loading.visibility = View.GONE
+                        errorView.visibility = View.GONE
                         if (seekToOnReady > 0) {
                             player.seekTo(seekToOnReady)
                             seekToOnReady = 0L
@@ -89,7 +103,12 @@ class PlayerActivity : AppCompatActivity() {
 
             override fun onPlayerError(error: PlaybackException) {
                 loading.visibility = View.GONE
-                errorView.text = getString(R.string.play_error, error.errorCodeName)
+                val message = if (isNetworkLost) {
+                    getString(R.string.network_lost)
+                } else {
+                    getString(R.string.play_error, error.errorCodeName)
+                }
+                errorView.text = message
                 errorView.visibility = View.VISIBLE
             }
         })
@@ -110,6 +129,44 @@ class PlayerActivity : AppCompatActivity() {
 
         // 初始进入全屏
         enterFullscreen()
+
+        // 监听网络状态（仅远程播放时）
+        if (isRemotePlayback) {
+            startNetworkMonitor()
+        }
+    }
+
+    private fun startNetworkMonitor() {
+        networkMonitor = NetworkMonitor(this)
+        networkMonitor?.startListening(object : NetworkMonitor.NetworkListener {
+            override fun onNetworkAvailable() {
+                runOnUiThread {
+                    if (isNetworkLost) {
+                        isNetworkLost = false
+                        // 网络恢复，尝试重新加载
+                        errorView.visibility = View.GONE
+                        loading.visibility = View.VISIBLE
+                        player?.let { p ->
+                            p.prepare()
+                            p.playWhenReady = true
+                        }
+                        Toast.makeText(this@PlayerActivity, R.string.network_restored, Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+
+            override fun onNetworkLost() {
+                runOnUiThread {
+                    isNetworkLost = true
+                    if (player?.isPlaying == true) {
+                        player?.pause()
+                    }
+                    loading.visibility = View.GONE
+                    errorView.text = getString(R.string.network_lost)
+                    errorView.visibility = View.VISIBLE
+                }
+            }
+        })
     }
 
     @SuppressLint("InlinedApi")
@@ -166,6 +223,8 @@ class PlayerActivity : AppCompatActivity() {
     override fun onStop() {
         super.onStop()
         saveProgress()
+        networkMonitor?.stopListening()
+        networkMonitor = null
         playerView.player = null
         player?.release()
         player = null
