@@ -1,9 +1,15 @@
 package com.hmv.app
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ActivityInfo
+import android.os.Build
 import android.os.Bundle
 import android.view.View
+import android.view.WindowInsets
+import android.view.WindowInsetsController
+import android.widget.ImageButton
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -19,10 +25,9 @@ import androidx.media3.ui.PlayerView
  * 接收 [EXTRA_URL]（http://ip:端口/media/{id}）交给 ExoPlayer 播放，
  * 拖动进度条时播放器会自动发送 HTTP Range 请求，验证服务端的 Range 能力。
  *
- * 支持播放进度保存与续播：
- * - [EXTRA_MEDIA_ID] 用于标识媒体，持久化播放位置
- * - onPause/onStop 时自动保存进度
- * - onCreate 时自动恢复上次播放位置
+ * 支持：
+ * - 播放进度保存与续播
+ * - 横竖屏切换 + 沉浸式全屏
  */
 class PlayerActivity : AppCompatActivity() {
 
@@ -30,8 +35,10 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var playerView: PlayerView
     private lateinit var loading: ProgressBar
     private lateinit var errorView: TextView
+    private lateinit var fullscreenBtn: ImageButton
     private var mediaId: String = ""
     private var seekToOnReady: Long = 0L
+    private var isFullscreen = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,6 +47,7 @@ class PlayerActivity : AppCompatActivity() {
         playerView = findViewById(R.id.player_view)
         loading = findViewById(R.id.loading)
         errorView = findViewById(R.id.error_view)
+        fullscreenBtn = findViewById(R.id.btn_fullscreen)
 
         val url = intent.getStringExtra(EXTRA_URL) ?: run {
             finish()
@@ -65,7 +73,6 @@ class PlayerActivity : AppCompatActivity() {
                     Player.STATE_BUFFERING -> loading.visibility = View.VISIBLE
                     Player.STATE_READY -> {
                         loading.visibility = View.GONE
-                        // 准备就绪后跳转到保存的位置
                         if (seekToOnReady > 0) {
                             player.seekTo(seekToOnReady)
                             seekToOnReady = 0L
@@ -73,7 +80,6 @@ class PlayerActivity : AppCompatActivity() {
                     }
                     Player.STATE_ENDED -> {
                         loading.visibility = View.GONE
-                        // 播放结束，清除进度
                         if (mediaId.isNotEmpty()) {
                             PlayProgressManager.clear(this@PlayerActivity, mediaId)
                         }
@@ -88,6 +94,8 @@ class PlayerActivity : AppCompatActivity() {
             }
         })
 
+        fullscreenBtn.setOnClickListener { toggleFullscreen() }
+
         val item = MediaItem.Builder()
             .setUri(url)
             .setMediaMetadata(
@@ -99,6 +107,54 @@ class PlayerActivity : AppCompatActivity() {
         player.setMediaItem(item)
         player.prepare()
         player.playWhenReady = true
+
+        // 初始进入全屏
+        enterFullscreen()
+    }
+
+    @SuppressLint("InlinedApi")
+    private fun enterFullscreen() {
+        isFullscreen = true
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            window.insetsController?.let { controller ->
+                controller.hide(WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars())
+                controller.systemBarsBehavior =
+                    WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            }
+        } else {
+            @Suppress("DEPRECATION")
+            window.decorView.systemUiVisibility = (
+                View.SYSTEM_UI_FLAG_FULLSCREEN or
+                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
+                    View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
+                    View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                )
+        }
+        fullscreenBtn.setImageResource(R.drawable.ic_fullscreen_exit)
+    }
+
+    @SuppressLint("InlinedApi")
+    private fun exitFullscreen() {
+        isFullscreen = false
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            window.insetsController?.show(
+                WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars()
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_VISIBLE
+        }
+        fullscreenBtn.setImageResource(R.drawable.ic_fullscreen_enter)
+    }
+
+    private fun toggleFullscreen() {
+        if (isFullscreen) exitFullscreen() else enterFullscreen()
     }
 
     override fun onPause() {
