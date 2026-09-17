@@ -8,4 +8,6 @@
     <string name="scanning">扫描媒体中…</string>
     <string name="play_error">播放失败：%1$s</string>
     <string name="unknown_duration">时长未知</string>
+    <string name="discovered_devices">发现的设备</string>
+    <string name="no_devices">未发现其他设备</string>
 </resources>

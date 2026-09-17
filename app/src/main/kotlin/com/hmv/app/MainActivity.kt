@@ -21,15 +21,18 @@ class MainActivity : AppCompatActivity() {
 
     private var service: MediaServerService? = null
     private var bound = false
+    private var nsdHelper: NsdHelper? = null
     private val statusView by lazy { findViewById<TextView>(R.id.status) }
     private val emptyHint by lazy { findViewById<TextView>(R.id.empty_hint) }
-    private val adapter = MediaAdapter { onMediaClicked(it) }
+    private val mediaAdapter = MediaAdapter { onMediaClicked(it) }
+    private val deviceAdapter = DeviceAdapter { onDeviceClicked(it) }
 
     private val connection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
             val localBinder = binder as MediaServerService.LocalBinder
             service = localBinder.getService()
             bound = true
+            startDeviceDiscovery()
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
@@ -49,7 +52,12 @@ class MainActivity : AppCompatActivity() {
 
         findViewById<RecyclerView>(R.id.media_list).apply {
             layoutManager = LinearLayoutManager(this@MainActivity)
-            adapter = this@MainActivity.adapter
+            adapter = this@MainActivity.mediaAdapter
+        }
+
+        findViewById<RecyclerView>(R.id.device_list).apply {
+            layoutManager = LinearLayoutManager(this@MainActivity, LinearLayoutManager.HORIZONTAL, false)
+            adapter = this@MainActivity.deviceAdapter
         }
 
         requestMediaPermissions()
@@ -75,7 +83,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun showPermissionDenied() {
         statusView.text = getString(R.string.permission_denied)
-        adapter.submit(emptyList())
+        mediaAdapter.submit(emptyList())
         emptyHint.visibility = android.view.View.VISIBLE
     }
 
@@ -85,7 +93,7 @@ class MainActivity : AppCompatActivity() {
             val items = MediaScanner(this).scan(MediaScanner.CollectionKind.VIDEO) +
                 MediaScanner(this).scan(MediaScanner.CollectionKind.AUDIO)
             runOnUiThread {
-                adapter.submit(items)
+                mediaAdapter.submit(items)
                 emptyHint.visibility = if (items.isEmpty()) android.view.View.VISIBLE else android.view.View.GONE
                 startService(items)
             }
@@ -103,14 +111,44 @@ class MainActivity : AppCompatActivity() {
         statusView.text = "服务启动中..."
     }
 
+    private fun startDeviceDiscovery() {
+        nsdHelper = NsdHelper(this)
+        nsdHelper?.startDiscovery(object : NsdHelper.DeviceListener {
+            override fun onDeviceFound(device: NsdHelper.DiscoveredDevice) {
+                runOnUiThread {
+                    deviceAdapter.addDevice(device)
+                }
+            }
+
+            override fun onDeviceLost(device: NsdHelper.DiscoveredDevice) {
+                runOnUiThread {
+                    deviceAdapter.removeDevice(device)
+                }
+            }
+
+            override fun onDiscoveryFailed(errorCode: Int) {
+                runOnUiThread {
+                    statusView.text = "设备发现失败: $errorCode"
+                }
+            }
+        })
+    }
+
     private fun onMediaClicked(item: MediaItem) {
         val port = service?.port ?: return
         val url = "http://127.0.0.1:$port/media/${item.id}"
         startActivity(PlayerActivity.createIntent(this, url, item.title))
     }
 
+    private fun onDeviceClicked(device: NsdHelper.DiscoveredDevice) {
+        val url = "${device.mediaUrl}"
+        startActivity(PlayerActivity.createIntent(this, url, device.name))
+    }
+
     override fun onDestroy() {
         super.onDestroy()
+        nsdHelper?.stopDiscovery()
+        nsdHelper = null
         if (bound) {
             unbindService(connection)
             bound = false

@@ -17,6 +17,7 @@ class MediaServerService : Service() {
     private var server: HttpRangeServer? = null
     private var items: List<com.hmv.server.MediaItem> = emptyList()
     private val binder = LocalBinder()
+    private var nsdHelper: NsdHelper? = null
 
     inner class LocalBinder : Binder() {
         fun getService(): MediaServerService = this@MediaServerService
@@ -59,9 +60,14 @@ class MediaServerService : Service() {
         s.start()
         server = s
         startForeground(NOTIFICATION_ID, buildNotification(s.port))
+
+        nsdHelper = NsdHelper(this)
+        nsdHelper?.registerService(s.port)
     }
 
     private fun stopServer() {
+        nsdHelper?.unregisterService()
+        nsdHelper = null
         server?.close()
         server = null
     }
