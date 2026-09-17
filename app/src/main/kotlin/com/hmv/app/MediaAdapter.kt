@@ -13,16 +13,48 @@ import com.hmv.server.MediaItem
 
 /**
  * 媒体列表适配器。条目展示缩略图 + 标题 + 类型/大小，点击通过 [onClick] 回调抛出。
+ *
+ * 支持按名称搜索和按类型（全部/视频/音频）筛选。
  */
 class MediaAdapter(
     private val onClick: (MediaItem) -> Unit
 ) : RecyclerView.Adapter<MediaAdapter.ItemHolder>() {
 
+    private val allItems = mutableListOf<MediaItem>()
     private val items = mutableListOf<MediaItem>()
+    private var searchQuery = ""
+    private var typeFilter = TypeFilter.ALL
+
+    enum class TypeFilter { ALL, VIDEO, AUDIO }
 
     fun submit(newItems: List<MediaItem>) {
+        allItems.clear()
+        allItems.addAll(newItems)
+        applyFilter()
+    }
+
+    fun setSearchQuery(query: String) {
+        searchQuery = query.trim()
+        applyFilter()
+    }
+
+    fun setTypeFilter(filter: TypeFilter) {
+        typeFilter = filter
+        applyFilter()
+    }
+
+    private fun applyFilter() {
         items.clear()
-        items.addAll(newItems)
+        items.addAll(allItems.filter { item ->
+            val matchesQuery = searchQuery.isEmpty() ||
+                item.title.contains(searchQuery, ignoreCase = true)
+            val matchesType = when (typeFilter) {
+                TypeFilter.ALL -> true
+                TypeFilter.VIDEO -> item.mimeType.startsWith("video")
+                TypeFilter.AUDIO -> item.mimeType.startsWith("audio")
+            }
+            matchesQuery && matchesType
+        })
         notifyDataSetChanged()
     }
 
