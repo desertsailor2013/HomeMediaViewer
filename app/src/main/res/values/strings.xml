@@ -10,4 +10,9 @@
     <string name="unknown_duration">时长未知</string>
     <string name="discovered_devices">发现的设备</string>
     <string name="no_devices">未发现其他设备</string>
+    <string name="search_hint">搜索媒体文件…</string>
+    <string name="filter_all">全部</string>
+    <string name="filter_video">视频</string>
+    <string name="filter_audio">音频</string>
+    <string name="no_match">没有匹配的媒体文件</string>
 </resources>

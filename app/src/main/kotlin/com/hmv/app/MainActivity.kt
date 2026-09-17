@@ -9,6 +9,9 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
+import android.text.Editable
+import android.text.TextWatcher
+import android.widget.EditText
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -25,7 +28,11 @@ class MainActivity : AppCompatActivity() {
     private var currentDevice: NsdHelper.DiscoveredDevice? = null
     private val remoteClient = RemoteMediaClient()
     private val statusView by lazy { findViewById<TextView>(R.id.status) }
-    private val emptyHint by lazy { findViewById<TextView>(R.id.empty_hint) }
+    private val emptyHint by lazy { TextView(this).apply { /* placeholder, set in onCreate */ } }
+    private val searchInput by lazy { findViewById<EditText>(R.id.search_input) }
+    private val filterAll by lazy { findViewById<TextView>(R.id.filter_all) }
+    private val filterVideo by lazy { findViewById<TextView>(R.id.filter_video) }
+    private val filterAudio by lazy { findViewById<TextView>(R.id.filter_audio) }
     private val mediaAdapter = MediaAdapter { onMediaClicked(it) }
     private val deviceAdapter = DeviceAdapter { onDeviceClicked(it) }
 
@@ -52,17 +59,61 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        findViewById<RecyclerView>(R.id.media_list).apply {
-            layoutManager = LinearLayoutManager(this@MainActivity)
-            adapter = this@MainActivity.mediaAdapter
-        }
+        val mediaList = findViewById<RecyclerView>(R.id.media_list)
+        mediaList.layoutManager = LinearLayoutManager(this)
+        mediaList.adapter = mediaAdapter
 
         findViewById<RecyclerView>(R.id.device_list).apply {
             layoutManager = LinearLayoutManager(this@MainActivity, LinearLayoutManager.HORIZONTAL, false)
             adapter = this@MainActivity.deviceAdapter
         }
 
+        setupSearchAndFilter()
         requestMediaPermissions()
+    }
+
+    private fun setupSearchAndFilter() {
+        searchInput.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                mediaAdapter.setSearchQuery(s?.toString() ?: "")
+                updateEmptyHint()
+            }
+            override fun afterTextChanged(s: Editable?) {}
+        })
+
+        filterAll.setOnClickListener { setFilter(MediaAdapter.TypeFilter.ALL) }
+        filterVideo.setOnClickListener { setFilter(MediaAdapter.TypeFilter.VIDEO) }
+        filterAudio.setOnClickListener { setFilter(MediaAdapter.TypeFilter.AUDIO) }
+    }
+
+    private fun setFilter(filter: MediaAdapter.TypeFilter) {
+        mediaAdapter.setTypeFilter(filter)
+        updateFilterUI(filter)
+        updateEmptyHint()
+    }
+
+    private fun updateFilterUI(filter: MediaAdapter.TypeFilter) {
+        val selectedColor = ContextCompat.getColor(this, R.color.filter_selected)
+        val unselectedColor = ContextCompat.getColor(this, R.color.filter_unselected)
+
+        filterAll.setTextColor(if (filter == MediaAdapter.TypeFilter.ALL) selectedColor else unselectedColor)
+        filterAll.textSize = if (filter == MediaAdapter.TypeFilter.ALL) 15f else 13f
+        filterVideo.setTextColor(if (filter == MediaAdapter.TypeFilter.VIDEO) selectedColor else unselectedColor)
+        filterVideo.textSize = if (filter == MediaAdapter.TypeFilter.VIDEO) 15f else 13f
+        filterAudio.setTextColor(if (filter == MediaAdapter.TypeFilter.AUDIO) selectedColor else unselectedColor)
+        filterAudio.textSize = if (filter == MediaAdapter.TypeFilter.AUDIO) 15f else 13f
+    }
+
+    private fun updateEmptyHint() {
+        val hasItems = mediaAdapter.itemCount > 0
+        val hintText = if (searchInput.text.isNotEmpty() || mediaAdapter.itemCount == 0) {
+            getString(R.string.no_match)
+        } else {
+            getString(R.string.no_media)
+        }
+        emptyHint.text = hintText
+        emptyHint.visibility = if (hasItems) android.view.View.GONE else android.view.View.VISIBLE
     }
 
     private fun requestMediaPermissions() {
@@ -86,7 +137,7 @@ class MainActivity : AppCompatActivity() {
     private fun showPermissionDenied() {
         statusView.text = getString(R.string.permission_denied)
         mediaAdapter.submit(emptyList())
-        emptyHint.visibility = android.view.View.VISIBLE
+        updateEmptyHint()
     }
 
     private fun startServerAsync() {
@@ -96,7 +147,7 @@ class MainActivity : AppCompatActivity() {
                 MediaScanner(this).scan(MediaScanner.CollectionKind.AUDIO)
             runOnUiThread {
                 mediaAdapter.submit(items)
-                emptyHint.visibility = if (items.isEmpty()) android.view.View.VISIBLE else android.view.View.GONE
+                updateEmptyHint()
                 startService(items)
             }
         }.start()
@@ -160,7 +211,7 @@ class MainActivity : AppCompatActivity() {
             runOnUiThread {
                 result.onSuccess { items ->
                     mediaAdapter.submit(items)
-                    emptyHint.visibility = if (items.isEmpty()) android.view.View.VISIBLE else android.view.View.GONE
+                    updateEmptyHint()
                     statusView.text = "${device.name} - ${items.size} 个媒体文件"
                 }.onFailure { e ->
                     statusView.text = "获取失败: ${e.message}"
