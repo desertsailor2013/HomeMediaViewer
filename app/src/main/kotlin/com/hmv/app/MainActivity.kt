@@ -1,26 +1,42 @@
 package com.hmv.app
 
 import android.Manifest
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.content.ServiceConnection
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.os.IBinder
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.hmv.server.HttpRangeServer
 import com.hmv.server.MediaItem
-import java.net.Inet4Address
-import java.net.NetworkInterface
 
 class MainActivity : AppCompatActivity() {
 
-    private var server: HttpRangeServer? = null
+    private var service: MediaServerService? = null
+    private var bound = false
     private val statusView by lazy { findViewById<TextView>(R.id.status) }
     private val emptyHint by lazy { findViewById<TextView>(R.id.empty_hint) }
     private val adapter = MediaAdapter { onMediaClicked(it) }
+
+    private val connection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
+            val localBinder = binder as MediaServerService.LocalBinder
+            service = localBinder.getService()
+            bound = true
+        }
+
+        override fun onServiceDisconnected(name: ComponentName?) {
+            service = null
+            bound = false
+        }
+    }
 
     private val permissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
@@ -71,41 +87,33 @@ class MainActivity : AppCompatActivity() {
             runOnUiThread {
                 adapter.submit(items)
                 emptyHint.visibility = if (items.isEmpty()) android.view.View.VISIBLE else android.view.View.GONE
-
-                val repo = ContentMediaRepository(this, items)
-                val s = HttpRangeServer(repo)
-                s.start()
-                server = s
-                statusView.text = getString(R.string.server_started, s.port) + "\n" +
-                    getString(R.string.local_ips) + "：\n" +
-                    localIps().joinToString("\n") { "  http://$it:${s.port}/media" } +
-                    "\n（点击下方条目本地播放验证）"
+                startService(items)
             }
         }.start()
     }
 
+    private fun startService(items: List<MediaItem>) {
+        val serviceIntent = Intent(this, MediaServerService::class.java).apply {
+            action = MediaServerService.ACTION_START
+            putExtra(MediaServerService.EXTRA_ITEMS, ArrayList(items))
+        }
+        startForegroundService(serviceIntent)
+        bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE)
+
+        statusView.text = "服务启动中..."
+    }
+
     private fun onMediaClicked(item: MediaItem) {
-        val port = server?.port ?: return
+        val port = service?.port ?: return
         val url = "http://127.0.0.1:$port/media/${item.id}"
         startActivity(PlayerActivity.createIntent(this, url, item.title))
     }
 
-    private fun localIps(): List<String> {
-        val result = mutableListOf<String>()
-        try {
-            NetworkInterface.getNetworkInterfaces().toList().forEach { ni ->
-                if (ni.isUp && !ni.isLoopback) {
-                    ni.inetAddresses.toList().filter { it is Inet4Address && !it.isLoopbackAddress }
-                        .forEach { it.hostAddress?.let { addr -> result += addr } }
-                }
-            }
-        } catch (_: Exception) {}
-        return result
-    }
-
     override fun onDestroy() {
         super.onDestroy()
-        server?.close()
-        server = null
+        if (bound) {
+            unbindService(connection)
+            bound = false
+        }
     }
 }

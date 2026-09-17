@@ -15,7 +15,7 @@ data class MediaItem(
     val mimeType: String,
     val size: Long,
     val relativePath: String
-)
+) : java.io.Serializable
 
 /**
  * 媒体的数据源抽象。
