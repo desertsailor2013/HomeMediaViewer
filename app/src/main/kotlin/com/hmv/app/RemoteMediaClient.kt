@@ -26,7 +26,7 @@ class RemoteMediaClient {
 
                 if (conn.responseCode == 200) {
                     val json = conn.inputStream.bufferedReader().readText()
-                    val items = parseMediaList(json)
+                    val items = parseMediaList(json, device)
                     callback(Result.success(items))
                 } else {
                     callback(Result.failure(Exception("HTTP ${conn.responseCode}")))
@@ -37,18 +37,25 @@ class RemoteMediaClient {
         }.start()
     }
 
-    private fun parseMediaList(json: String): List<MediaItem> {
+    private fun parseMediaList(json: String, device: RemoteDevice): List<MediaItem> {
         val items = mutableListOf<MediaItem>()
         val array = JSONArray(json)
         for (i in 0 until array.length()) {
             val obj = array.getJSONObject(i)
+            val mediaId = obj.getString("id")
+            val thumbnail = if (obj.has("thumbnail")) {
+                obj.getString("thumbnail")
+            } else {
+                getThumbnailUrl(device, mediaId)
+            }
             items.add(
                 MediaItem(
-                    id = obj.getString("id"),
+                    id = mediaId,
                     title = obj.getString("title"),
                     mimeType = obj.getString("mimeType"),
                     size = obj.getLong("size"),
-                    relativePath = obj.getString("path")
+                    relativePath = obj.getString("path"),
+                    thumbnailUri = thumbnail
                 )
             )
         }
@@ -57,5 +64,9 @@ class RemoteMediaClient {
 
     fun getMediaUrl(device: RemoteDevice, mediaId: String): String {
         return "${device.baseUrl}/media/$mediaId"
+    }
+
+    fun getThumbnailUrl(device: RemoteDevice, mediaId: String): String {
+        return "${device.baseUrl}/media/$mediaId/thumbnail"
     }
 }

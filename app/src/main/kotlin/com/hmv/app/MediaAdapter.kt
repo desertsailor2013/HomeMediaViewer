@@ -1,14 +1,19 @@
 package com.hmv.app
 
+import android.net.Uri
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import coil.load
+import coil.decode.VideoFrameDecoder
+import coil.request.ImageRequest
 import com.hmv.server.MediaItem
 
 /**
- * 媒体列表适配器。条目展示标题 + 类型/大小，点击通过 [onClick] 回调抛出。
+ * 媒体列表适配器。条目展示缩略图 + 标题 + 类型/大小，点击通过 [onClick] 回调抛出。
  */
 class MediaAdapter(
     private val onClick: (MediaItem) -> Unit
@@ -34,6 +39,31 @@ class MediaAdapter(
         holder.title.text = item.title
         holder.subtitle.text = "${typeLabel(item.mimeType)} · ${formatSize(item.size)}"
         holder.itemView.setOnClickListener { onClick(item) }
+        loadThumbnail(holder.thumbnail, item)
+    }
+
+    private fun loadThumbnail(imageView: ImageView, item: MediaItem) {
+        val context = imageView.context
+        val request = ImageRequest.Builder(context)
+            .data(item.thumbnailUri?.let { Uri.parse(it) })
+            .crossfade(true)
+            .size(168, 168)
+            .build()
+
+        if (item.mimeType.startsWith("video")) {
+            imageView.load(request) {
+                decoderFactory { result, options, _ ->
+                    VideoFrameDecoder(result.source, options)
+                }
+                placeholder(R.drawable.ic_launcher_foreground)
+                error(R.drawable.ic_launcher_foreground)
+            }
+        } else {
+            imageView.load(request) {
+                placeholder(R.drawable.ic_launcher_foreground)
+                error(R.drawable.ic_launcher_foreground)
+            }
+        }
     }
 
     private fun typeLabel(mime: String) = when {
@@ -52,6 +82,7 @@ class MediaAdapter(
     }
 
     class ItemHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val thumbnail: ImageView = view.findViewById(R.id.media_thumbnail)
         val title: TextView = view.findViewById(R.id.media_title)
         val subtitle: TextView = view.findViewById(R.id.media_subtitle)
     }

@@ -85,6 +85,7 @@ class HttpRangeServer(
                     request == null -> writeStatus(out, STATUS_BAD_REQUEST)
                     request.method != "GET" && request.method != "HEAD" -> writeStatus(out, STATUS_BAD_REQUEST)
                     request.path == "/media" || request.path == "/media/" -> handleList(out, request.method)
+                    request.path.matches(Regex("^/media/[^/]+/thumbnail$")) -> handleThumbnail(out, request)
                     request.path.startsWith("/media/") -> handleStream(out, bufferSize, request)
                     else -> writeStatus(out, STATUS_NOT_FOUND)
                 }
@@ -169,6 +170,9 @@ class HttpRangeServer(
                 .append("\"mimeType\":\"").append(escapeJson(m.mimeType)).append("\",")
                 .append("\"size\":").append(m.size).append(',')
                 .append("\"path\":\"").append(escapeJson(m.relativePath)).append("\"")
+            if (m.thumbnailUri != null) {
+                sb.append(",\"thumbnail\":\"").append(escapeJson(m.thumbnailUri)).append("\"")
+            }
             sb.append('}')
         }
         return sb.append(']').toString()
@@ -179,6 +183,36 @@ class HttpRangeServer(
         .replace("\"", "\\\"")
         .replace("\n", "\\n")
         .replace("\r", "\\r")
+
+    // ---------- 缩略图 ----------
+
+    private fun handleThumbnail(out: OutputStream, request: HttpRequest) {
+        val id = request.path.removePrefix("/media/").removeSuffix("/thumbnail")
+        if (id.isEmpty()) {
+            writeStatus(out, STATUS_NOT_FOUND)
+            return
+        }
+        val stream = repository.getThumbnail(id)
+        if (stream == null) {
+            writeStatus(out, STATUS_NOT_FOUND)
+            return
+        }
+        stream.use { input ->
+            val bytes = input.readBytes()
+            val mime = if (bytes.size >= 4) {
+                when {
+                    bytes[0] == 0xFF.toByte() && bytes[1] == 0xD8.toByte() -> "image/jpeg"
+                    bytes[0] == 0x89.toByte() && bytes[1] == 0x50.toByte() -> "image/png"
+                    else -> MIME_OCTET
+                }
+            } else MIME_OCTET
+            if (request.method == "HEAD") {
+                writeHead(out, STATUS_OK, mime, bytes.size.toLong(), emptyMap())
+            } else {
+                writeResponse(out, STATUS_OK, mime, bytes.size.toLong(), bytes)
+            }
+        }
+    }
 
     // ---------- 媒体流 ----------
 
