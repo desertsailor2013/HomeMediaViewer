@@ -15,4 +15,5 @@
     <string name="filter_video">视频</string>
     <string name="filter_audio">音频</string>
     <string name="no_match">没有匹配的媒体文件</string>
+    <string name="fullscreen">全屏</string>
 </resources>
