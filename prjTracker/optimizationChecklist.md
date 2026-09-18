@@ -17,10 +17,10 @@
 
 ## 资源泄漏（高优先级）
 
-| # | 问题 | 文件 | 状态 | 建议 |
-|---|------|------|------|------|
-| 4 | HttpURLConnection 未关闭 | `RemoteMediaClient.kt:22-36` | ⏳ | 加 `try-finally { conn.disconnect() }`，异常时消费 `errorStream` |
-| 5 | AssetFileDescriptor 未关闭 | `ContentMediaRepository.kt:34` | ⏳ | `afd.close()` 或 `.use {}` 管理生命周期 |
+| # | 问题 | 文件 | 状态 | 修复内容 |
+|---|------|------|------|---------|
+| 4 | HttpURLConnection 未关闭 | `RemoteMediaClient.kt:22-36` | ✅ | `try-finally { conn.disconnect() }`，`bufferedReader().use {}` |
+| 5 | AssetFileDescriptor 未关闭 | `ContentMediaRepository.kt:34` | ✅ | `afd.use {}` 管理生命周期 |
 
 ---
 
@@ -71,9 +71,9 @@
 | 类别 | 总计 | 已修复 | 待处理 |
 |------|------|--------|--------|
 | 安全 | 3 | 3 | 0 |
-| 资源泄漏 | 2 | 0 | 2 |
+| 资源泄漏 | 2 | 2 | 0 |
 | 硬编码字符串 | 3 | 0 | 3 |
 | 性能 | 4 | 0 | 4 |
 | 代码质量 | 4 | 0 | 4 |
 | 最佳实践 | 3 | 0 | 3 |
-| **合计** | **19** | **3** | **16** |
+| **合计** | **19** | **5** | **14** |
