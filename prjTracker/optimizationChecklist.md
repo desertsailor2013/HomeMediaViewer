@@ -36,9 +36,9 @@
 
 ## 性能（中优先级）
 
-| # | 问题 | 文件 | 状态 | 建议 |
-|---|------|------|------|------|
-| 9 | 每次请求重编译 Regex | `HttpRangeServer.kt:88` | ⏳ | 提为 `companion object` 常量 |
+| # | 问题 | 文件 | 状态 | 修复内容 |
+|---|------|------|------|---------|
+| 9 | 每次请求重编译 Regex | `HttpRangeServer.kt:88` | ✅ | 提为 `companion object { THUMBNAIL_PATTERN }` 常量 |
 | 10 | 无限线程池 | `HttpRangeServer.kt:45` | ⏳ | 改为 `newFixedThreadPool(N)` |
 | 11 | `notifyDataSetChanged()` 全量刷新 | `MediaAdapter.kt:58` | ⏳ | 改用 `DiffUtil` |
 | 12 | 重复创建 MediaScanner | `MainActivity.kt:164-165` | ⏳ | 复用单个实例 |
@@ -73,7 +73,7 @@
 | 安全 | 3 | 3 | 0 |
 | 资源泄漏 | 2 | 2 | 0 |
 | 硬编码字符串 | 3 | 3 | 0 |
-| 性能 | 4 | 0 | 4 |
+| 性能 | 4 | 1 | 3 |
 | 代码质量 | 4 | 0 | 4 |
 | 最佳实践 | 3 | 0 | 3 |
-| **合计** | **19** | **8** | **11** |
+| **合计** | **19** | **9** | **10** |

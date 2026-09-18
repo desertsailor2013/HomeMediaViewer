@@ -38,6 +38,7 @@ class HttpRangeServer(
         private const val STATUS_RANGE_416 = "416 Range Not Satisfiable"
         private const val STATUS_NOT_FOUND = "404 Not Found"
         private const val STATUS_BAD_REQUEST = "400 Bad Request"
+        private val THUMBNAIL_PATTERN = Regex("^/media/[^/]+/thumbnail$")
     }
 
     private val serverSocket = ServerSocket(port)
@@ -85,7 +86,7 @@ class HttpRangeServer(
                     request == null -> writeStatus(out, STATUS_BAD_REQUEST)
                     request.method != "GET" && request.method != "HEAD" -> writeStatus(out, STATUS_BAD_REQUEST)
                     request.path == "/media" || request.path == "/media/" -> handleList(out, request.method)
-                    request.path.matches(Regex("^/media/[^/]+/thumbnail$")) -> handleThumbnail(out, request)
+                    request.path.matches(THUMBNAIL_PATTERN) -> handleThumbnail(out, request)
                     request.path.startsWith("/media/") -> handleStream(out, bufferSize, request)
                     else -> writeStatus(out, STATUS_NOT_FOUND)
                 }
