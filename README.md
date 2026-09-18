@@ -9,6 +9,12 @@
 - **跨设备播放** — 选择发现的远程设备，获取其媒体列表并直接流式播放
 - **MediaStore 媒体扫描** — 自动扫描设备中的视频和音频文件（API 33+ 适配 READ_MEDIA_VIDEO/AUDIO）
 - **ExoPlayer 在线播放** — 基于 Media3 ExoPlayer，支持 HTTP 流播放、加载状态、错误处理
+- **缩略图展示** — 视频帧 / 音频封面自动生成，Coil 异步加载
+- **播放进度保存** — 自动记录播放位置，再次打开自动续播
+- **搜索与筛选** — 按文件名搜索，按类型（全部/视频/音频）筛选
+- **深色模式** — 支持亮色/暗色主题自动切换
+- **横屏全屏播放** — 进入播放页自动横屏沉浸式，支持手动切换
+- **网络状态感知** — 播放页网络断开提示，设备离线自动切回本地
 - **前台 Service** — HTTP 服务绑定前台 Service，后台运行不被系统回收
 - **零依赖服务端** — core-server 模块纯 Kotlin/JVM，无第三方 HTTP 库
 
@@ -20,6 +26,7 @@
 | AGP | 8.13.0 |
 | Gradle | 8.7 (wrapper) |
 | AndroidX Media3 (ExoPlayer) | 1.4.1 |
+| Coil | 2.7.0 |
 | minSdk | 26 |
 | targetSdk / compileSdk | 35 |
 
@@ -28,15 +35,17 @@
 ```
 ├── app/                         Android 应用模块
 │   └── src/main/kotlin/com/hmv/app/
-│       ├── MainActivity.kt      主界面：权限申请 + 设备列表 + 媒体列表
-│       ├── PlayerActivity.kt    ExoPlayer 播放页
+│       ├── MainActivity.kt      主界面：权限申请 + 设备列表 + 搜索筛选
+│       ├── PlayerActivity.kt    ExoPlayer 播放页（全屏/进度保存/网络检测）
 │       ├── MediaServerService.kt 前台 Service，承载 HTTP 服务器
 │       ├── MediaScanner.kt      MediaStore 扫描视频/音频
 │       ├── NsdHelper.kt         mDNS 注册与发现
 │       ├── DeviceAdapter.kt     设备列表 RecyclerView 适配器
-│       ├── MediaAdapter.kt      媒体列表 RecyclerView 适配器
+│       ├── MediaAdapter.kt      媒体列表适配器（缩略图 + 搜索过滤）
 │       ├── ContentMediaRepository.kt  content:// URI → RangeReadable 桥接
-│       └── RemoteMediaClient.kt 远程设备媒体列表拉取
+│       ├── RemoteMediaClient.kt 远程设备媒体列表拉取
+│       ├── PlayProgressManager.kt 播放进度持久化
+│       └── NetworkMonitor.kt    网络状态监听
 ├── core-server/                 纯 Kotlin/JVM 模块（零 Android 依赖）
 │   └── src/main/kotlin/com/hmv/server/
 │       ├── HttpRangeServer.kt   核心：ServerSocket HTTP+Range 服务
@@ -51,7 +60,7 @@
 ## 构建与运行
 
 ```bash
-./gradlew :core-server:test      # 运行服务端单测（15 项）
+./gradlew :core-server:test      # 运行服务端单测（20 项）
 ./gradlew :app:assembleDebug     # 构建调试 APK
 ```
 
@@ -64,6 +73,7 @@ APK 产物：`app/build/outputs/apk/debug/app-debug.apk`
 | `GET /media` | 返回 JSON 媒体列表 |
 | `GET /media/{id}` | 返回整文件字节流（200） |
 | `GET /media/{id}` + `Range: bytes=100-199` | 206 Partial Content |
+| `GET /media/{id}/thumbnail` | 返回缩略图（JPEG/PNG） |
 
 支持 `bytes=start-`（开区间）、`bytes=-N`（后缀）、越界返回 416、HEAD 请求。
 
@@ -106,8 +116,9 @@ APK 产物：`app/build/outputs/apk/debug/app-debug.apk`
 - [x] M3 mDNS 设备发现
 - [x] M4 跨设备播放
 - [x] 前台 Service + 签名配置
-- [ ] M5 缩略图 / 播放进度保存 / UI 打磨
+- [x] M5 缩略图 / 播放进度保存 / 搜索筛选 / 深色模式 / 全屏播放 / 网络感知
 - [ ] R8 混淆优化
+- [ ] CI/CD 自动构建
 
 ## License
 
