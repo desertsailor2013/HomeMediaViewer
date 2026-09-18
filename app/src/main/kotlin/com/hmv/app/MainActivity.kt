@@ -30,7 +30,7 @@ class MainActivity : AppCompatActivity() {
     private var currentDevice: NsdHelper.DiscoveredDevice? = null
     private val remoteClient = RemoteMediaClient()
     private val statusView by lazy { findViewById<TextView>(R.id.status) }
-    private val emptyHint by lazy { TextView(this).apply { /* placeholder, set in onCreate */ } }
+    private val emptyHint by lazy { findViewById<TextView>(R.id.empty_hint) }
     private val searchInput by lazy { findViewById<EditText>(R.id.search_input) }
     private val filterAll by lazy { findViewById<TextView>(R.id.filter_all) }
     private val filterVideo by lazy { findViewById<TextView>(R.id.filter_video) }
