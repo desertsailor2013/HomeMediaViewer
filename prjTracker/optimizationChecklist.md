@@ -50,7 +50,7 @@
 | # | 问题 | 文件 | 状态 | 建议 |
 |---|------|------|------|------|
 | 13 | `emptyHint` 未使用的 TextView | `MainActivity.kt:33` | ✅ | 改为 `findViewById(R.id.empty_hint)` |
-| 14 | 废弃 API `getSerializableExtra` | `MediaServerService.kt:37` | ⏳ | API 33+ 用类型化重载 |
+| 14 | 废弃 API `getSerializableExtra` | `MediaServerService.kt:37` | ✅ | API 33+ 用类型化重载，低版本降级处理 |
 | 15 | 未使用的 `coil-compose` 依赖 | `libs.versions.toml:20` | ⏳ | 删除 |
 | 16 | `allowBackup="true"` | `AndroidManifest.xml:14` | ⏳ | 改为 false 或配置规则 |
 
@@ -74,6 +74,6 @@
 | 资源泄漏 | 2 | 2 | 0 |
 | 硬编码字符串 | 3 | 3 | 0 |
 | 性能 | 4 | 4 | 0 |
-| 代码质量 | 4 | 1 | 3 |
+| 代码质量 | 4 | 2 | 2 |
 | 最佳实践 | 3 | 0 | 3 |
-| **合计** | **19** | **13** | **6** |
+| **合计** | **19** | **14** | **5** |
