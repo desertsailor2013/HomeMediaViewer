@@ -33,8 +33,10 @@ class ContentMediaRepository(
         return try {
             val afd = context.contentResolver.openAssetFileDescriptor(Uri.parse(relativePath), "r")
                 ?: return null
-            val dup = afd.parcelFileDescriptor.dup()
-            FdRangeReadable(FileInputStream(dup.fileDescriptor), dup)
+            afd.use { afdInner ->
+                val dup = afdInner.parcelFileDescriptor.dup()
+                FdRangeReadable(FileInputStream(dup.fileDescriptor), dup)
+            }
         } catch (e: Exception) {
             null
         }

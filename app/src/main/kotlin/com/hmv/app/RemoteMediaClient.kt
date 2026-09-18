@@ -17,15 +17,16 @@ class RemoteMediaClient {
 
     fun fetchMediaList(device: RemoteDevice, callback: (Result<List<MediaItem>>) -> Unit) {
         Thread {
+            var conn: HttpURLConnection? = null
             try {
                 val url = URL("${device.baseUrl}/media")
-                val conn = url.openConnection() as HttpURLConnection
+                conn = url.openConnection() as HttpURLConnection
                 conn.requestMethod = "GET"
                 conn.connectTimeout = 5000
                 conn.readTimeout = 5000
 
                 if (conn.responseCode == 200) {
-                    val json = conn.inputStream.bufferedReader().readText()
+                    val json = conn.inputStream.bufferedReader().use { it.readText() }
                     val items = parseMediaList(json, device)
                     callback(Result.success(items))
                 } else {
@@ -33,6 +34,8 @@ class RemoteMediaClient {
                 }
             } catch (e: Exception) {
                 callback(Result.failure(e))
+            } finally {
+                conn?.disconnect()
             }
         }.start()
     }
