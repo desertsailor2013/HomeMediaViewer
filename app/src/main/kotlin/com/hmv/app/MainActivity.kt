@@ -161,8 +161,9 @@ class MainActivity : AppCompatActivity() {
     private fun startServerAsync() {
         statusView.text = getString(R.string.scanning)
         Thread {
-            val items = MediaScanner(this).scan(MediaScanner.CollectionKind.VIDEO) +
-                MediaScanner(this).scan(MediaScanner.CollectionKind.AUDIO)
+            val scanner = MediaScanner(this)
+            val items = scanner.scan(MediaScanner.CollectionKind.VIDEO) +
+                scanner.scan(MediaScanner.CollectionKind.AUDIO)
             runOnUiThread {
                 mediaAdapter.submit(items)
                 updateEmptyHint()
