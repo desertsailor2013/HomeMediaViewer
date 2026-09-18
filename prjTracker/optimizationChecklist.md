@@ -61,7 +61,7 @@
 | # | 问题 | 状态 | 建议 |
 |---|------|------|------|
 | 17 | R8 混淆未开启 | ✅ | release 启用 `isMinifyEnabled=true` + `isShrinkResources=true`，补充 ProGuard 规则 |
-| 18 | `values-night/themes.xml` 冗余 | ⏳ | 删除，DayNight 主题自动适配 |
+| 18 | `values-night/themes.xml` 冗余 | ✅ | 删除，DayNight 主题自动适配 |
 | 19 | 缩略图全量读入内存 | ⏳ | `HttpRangeServer.kt` 改为流式传输 |
 
 ---
@@ -75,5 +75,5 @@
 | 硬编码字符串 | 3 | 3 | 0 |
 | 性能 | 4 | 4 | 0 |
 | 代码质量 | 4 | 4 | 0 |
-| 最佳实践 | 3 | 1 | 2 |
-| **合计** | **19** | **17** | **2** |
+| 最佳实践 | 3 | 2 | 1 |
+| **合计** | **19** | **18** | **1** |
