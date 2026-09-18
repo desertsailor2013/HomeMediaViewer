@@ -18,9 +18,9 @@ android {
     signingConfigs {
         create("release") {
             storeFile = file("release-key.jks")
-            storePassword = findProperty("STORE_PASSWORD") as? String ?: "hmv123456"
-            keyAlias = findProperty("KEY_ALIAS") as? String ?: "hmv"
-            keyPassword = findProperty("KEY_PASSWORD") as? String ?: "hmv123456"
+            storePassword = findProperty("STORE_PASSWORD") as? String ?: ""
+            keyAlias = findProperty("KEY_ALIAS") as? String ?: ""
+            keyPassword = findProperty("KEY_PASSWORD") as? String ?: ""
         }
     }
 
