@@ -76,10 +76,10 @@ class MediaServerService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "媒体服务",
+                getString(R.string.notification_channel_name),
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "HomeMediaViewer 媒体服务器运行中"
+                description = getString(R.string.notification_channel_desc)
             }
             val nm = getSystemService(NotificationManager::class.java)
             nm.createNotificationChannel(channel)
@@ -104,11 +104,11 @@ class MediaServerService : Service() {
         val ips = localIps().joinToString(", ") { "$it:$port" }
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("HomeMediaViewer 运行中")
-            .setContentText("访问: $ips")
+            .setContentTitle(getString(R.string.notification_title))
+            .setContentText(getString(R.string.notification_text, ips))
             .setSmallIcon(android.R.drawable.ic_media_play)
             .setContentIntent(openPendingIntent)
-            .addAction(android.R.drawable.ic_media_pause, "停止", stopPendingIntent)
+            .addAction(android.R.drawable.ic_media_pause, getString(R.string.stop), stopPendingIntent)
             .setOngoing(true)
             .build()
     }

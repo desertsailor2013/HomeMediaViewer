@@ -68,7 +68,7 @@ class MediaAdapter(
     override fun onBindViewHolder(holder: ItemHolder, position: Int) {
         val item = items[position]
         holder.title.text = item.title
-        holder.subtitle.text = "${typeLabel(item.mimeType)} · ${formatSize(item.size)}"
+        holder.subtitle.text = "${typeLabel(holder.itemView.context, item.mimeType)} · ${formatSize(item.size)}"
         holder.itemView.setOnClickListener { onClick(item) }
         loadThumbnail(holder.thumbnail, item)
     }
@@ -91,10 +91,10 @@ class MediaAdapter(
         }
     }
 
-    private fun typeLabel(mime: String) = when {
-        mime.startsWith("video") -> "视频"
-        mime.startsWith("audio") -> "音频"
-        else -> "媒体"
+    private fun typeLabel(context: android.content.Context, mime: String) = when {
+        mime.startsWith("video") -> context.getString(R.string.filter_video)
+        mime.startsWith("audio") -> context.getString(R.string.filter_audio)
+        else -> context.getString(R.string.type_media)
     }
 
     private fun formatSize(bytes: Long): String {
