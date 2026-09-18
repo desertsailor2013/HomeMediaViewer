@@ -43,7 +43,9 @@ class HttpRangeServer(
 
     private val serverSocket = ServerSocket(port)
     private val started = AtomicBoolean(false)
-    private val executor: ExecutorService = Executors.newCachedThreadPool { r ->
+    private val executor: ExecutorService = Executors.newFixedThreadPool(
+        Runtime.getRuntime().availableProcessors().coerceAtLeast(4)
+    ) { r ->
         Thread(r, "hmv-server").apply { isDaemon = true }
     }
     private val thread = Thread {
