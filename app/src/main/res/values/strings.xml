@@ -14,9 +14,20 @@
     <string name="filter_all">全部</string>
     <string name="filter_video">视频</string>
     <string name="filter_audio">音频</string>
+    <string name="type_media">媒体</string>
     <string name="no_match">没有匹配的媒体文件</string>
     <string name="fullscreen">全屏</string>
     <string name="network_lost">网络已断开，无法播放远程媒体</string>
     <string name="network_restored">网络已恢复</string>
     <string name="device_offline">设备已离线，已切回本地媒体</string>
+    <string name="server_starting">服务启动中…</string>
+    <string name="discovery_failed">设备发现失败：%1$d</string>
+    <string name="fetching_media">正在获取 %1$s 的媒体列表…</string>
+    <string name="device_media_count">%1$s - %2$d 个媒体文件</string>
+    <string name="fetch_failed">获取失败：%1$s</string>
+    <string name="notification_channel_name">媒体服务</string>
+    <string name="notification_channel_desc">HomeMediaViewer 媒体服务器运行中</string>
+    <string name="notification_title">HomeMediaViewer 运行中</string>
+    <string name="notification_text">访问：%1$s</string>
+    <string name="stop">停止</string>
 </resources>

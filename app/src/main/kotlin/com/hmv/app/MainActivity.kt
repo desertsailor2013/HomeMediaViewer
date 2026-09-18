@@ -179,7 +179,7 @@ class MainActivity : AppCompatActivity() {
         startForegroundService(serviceIntent)
         bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE)
 
-        statusView.text = "服务启动中..."
+        statusView.text = getString(R.string.server_starting)
     }
 
     private fun startDeviceDiscovery() {
@@ -205,7 +205,7 @@ class MainActivity : AppCompatActivity() {
 
             override fun onDiscoveryFailed(errorCode: Int) {
                 runOnUiThread {
-                    statusView.text = "设备发现失败: $errorCode"
+                    statusView.text = getString(R.string.discovery_failed, errorCode)
                 }
             }
         })
@@ -228,7 +228,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun onDeviceClicked(device: NsdHelper.DiscoveredDevice) {
         currentDevice = device
-        statusView.text = "正在获取 ${device.name} 的媒体列表..."
+        statusView.text = getString(R.string.fetching_media, device.name)
 
         val remoteDevice = RemoteMediaClient.RemoteDevice(device.name, device.host, device.port)
         remoteClient.fetchMediaList(remoteDevice) { result ->
@@ -236,9 +236,9 @@ class MainActivity : AppCompatActivity() {
                 result.onSuccess { items ->
                     mediaAdapter.submit(items)
                     updateEmptyHint()
-                    statusView.text = "${device.name} - ${items.size} 个媒体文件"
+                    statusView.text = getString(R.string.device_media_count, device.name, items.size)
                 }.onFailure { e ->
-                    statusView.text = "获取失败: ${e.message}"
+                    statusView.text = getString(R.string.fetch_failed, e.message ?: "")
                 }
             }
         }
