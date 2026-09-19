@@ -293,6 +293,18 @@ struct Index {
           .layoutWeight(1)
           .textAlign(TextAlign.End)
           .onClick(() => { this.isGroupByFolder = !this.isGroupByFolder; })
+
+        if (this.currentDevice) {
+          Text('📁')
+            .fontSize(16)
+            .margin({ left: 12 })
+            .onClick(() => {
+              router.pushUrl({
+                url: 'pages/FileManager',
+                params: { deviceAddress: this.currentDevice!.address }
+              });
+            })
+        }
       }
       .width('100%')
       .height(32)
