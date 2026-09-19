@@ -13,20 +13,32 @@ import coil.request.ImageRequest
 import com.hmv.server.MediaItem
 
 /**
- * 媒体列表适配器。条目展示缩略图 + 标题 + 类型/大小，点击通过 [onClick] 回调抛出。
+ * 媒体列表适配器。支持平铺视图和分组视图两种模式。
  *
- * 支持按名称搜索和按类型（全部/视频/音频）筛选。
+ * - 平铺模式：直接展示所有媒体项
+ * - 分组模式：按文件夹分组，每个分组有 header
  */
 class MediaAdapter(
     private val onClick: (MediaItem) -> Unit
-) : RecyclerView.Adapter<MediaAdapter.ItemHolder>() {
+) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     private val allItems = mutableListOf<MediaItem>()
-    private val items = mutableListOf<MediaItem>()
+    private val displayItems = mutableListOf<ListItem>()
     private var searchQuery = ""
     private var typeFilter = TypeFilter.ALL
+    private var groupByFolder = false
+
+    sealed class ListItem {
+        data class Header(val folderName: String, val count: Int) : ListItem()
+        data class Media(val item: MediaItem) : ListItem()
+    }
 
     enum class TypeFilter { ALL, VIDEO, AUDIO }
+
+    companion object {
+        private const val TYPE_HEADER = 0
+        private const val TYPE_MEDIA = 1
+    }
 
     fun submit(newItems: List<MediaItem>) {
         allItems.clear()
@@ -35,7 +47,16 @@ class MediaAdapter(
     }
 
     /** 获取当前过滤后的媒体列表（用于播放队列） */
-    fun getCurrentItems(): List<MediaItem> = items.toList()
+    fun getCurrentItems(): List<MediaItem> = allItems.filter { item ->
+        val matchesQuery = searchQuery.isEmpty() ||
+            item.title.contains(searchQuery, ignoreCase = true)
+        val matchesType = when (typeFilter) {
+            TypeFilter.ALL -> true
+            TypeFilter.VIDEO -> item.mimeType.startsWith("video")
+            TypeFilter.AUDIO -> item.mimeType.startsWith("audio")
+        }
+        matchesQuery && matchesType
+    }
 
     fun setSearchQuery(query: String) {
         searchQuery = query.trim()
@@ -47,8 +68,15 @@ class MediaAdapter(
         applyFilter()
     }
 
+    fun setGroupByFolder(group: Boolean) {
+        groupByFolder = group
+        applyFilter()
+    }
+
+    fun isGroupByFolder(): Boolean = groupByFolder
+
     private fun applyFilter() {
-        val newItems = allItems.filter { item ->
+        val filtered = allItems.filter { item ->
             val matchesQuery = searchQuery.isEmpty() ||
                 item.title.contains(searchQuery, ignoreCase = true)
             val matchesType = when (typeFilter) {
@@ -58,32 +86,85 @@ class MediaAdapter(
             }
             matchesQuery && matchesType
         }
+
+        val newItems = if (groupByFolder) {
+            buildGroupedList(filtered)
+        } else {
+            filtered.map { ListItem.Media(it) }
+        }
+
         val diff = DiffUtil.calculateDiff(object : DiffUtil.Callback() {
-            override fun getOldListSize() = items.size
+            override fun getOldListSize() = displayItems.size
             override fun getNewListSize() = newItems.size
-            override fun areItemsTheSame(oldPos: Int, newPos: Int) =
-                items[oldPos].id == newItems[newPos].id
-            override fun areContentsTheSame(oldPos: Int, newPos: Int) =
-                items[oldPos] == newItems[newPos]
+            override fun areItemsTheSame(oldPos: Int, newPos: Int): Boolean {
+                val old = displayItems[oldPos]
+                val new = newItems[newPos]
+                return when {
+                    old is ListItem.Header && new is ListItem.Header -> old.folderName == new.folderName
+                    old is ListItem.Media && new is ListItem.Media -> old.item.id == new.item.id
+                    else -> false
+                }
+            }
+            override fun areContentsTheSame(oldPos: Int, newPos: Int): Boolean {
+                return displayItems[oldPos] == newItems[newPos]
+            }
         })
-        items.clear()
-        items.addAll(newItems)
+        displayItems.clear()
+        displayItems.addAll(newItems)
         diff.dispatchUpdatesTo(this)
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ItemHolder {
-        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_media, parent, false)
-        return ItemHolder(view)
+    private fun buildGroupedList(items: List<MediaItem>): List<ListItem> {
+        val grouped = items.groupBy { it.folderName.ifEmpty { "未分类" } }
+            .toSortedMap(compareByDescending { it })
+
+        val result = mutableListOf<ListItem>()
+        for ((folder, folderItems) in grouped) {
+            result.add(ListItem.Header(folder, folderItems.size))
+            for (item in folderItems) {
+                result.add(ListItem.Media(item))
+            }
+        }
+        return result
     }
 
-    override fun getItemCount(): Int = items.size
+    override fun getItemViewType(position: Int): Int = when (displayItems[position]) {
+        is ListItem.Header -> TYPE_HEADER
+        is ListItem.Media -> TYPE_MEDIA
+    }
 
-    override fun onBindViewHolder(holder: ItemHolder, position: Int) {
-        val item = items[position]
-        holder.title.text = item.title
-        holder.subtitle.text = "${typeLabel(holder.itemView.context, item.mimeType)} · ${formatSize(item.size)}"
-        holder.itemView.setOnClickListener { onClick(item) }
-        loadThumbnail(holder.thumbnail, item)
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+        return when (viewType) {
+            TYPE_HEADER -> {
+                val view = LayoutInflater.from(parent.context)
+                    .inflate(R.layout.item_folder_header, parent, false)
+                HeaderHolder(view)
+            }
+            else -> {
+                val view = LayoutInflater.from(parent.context)
+                    .inflate(R.layout.item_media, parent, false)
+                MediaHolder(view)
+            }
+        }
+    }
+
+    override fun getItemCount(): Int = displayItems.size
+
+    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+        when (val item = displayItems[position]) {
+            is ListItem.Header -> {
+                val h = holder as HeaderHolder
+                h.folderName.text = item.folderName
+                h.count.text = holder.itemView.context.getString(R.string.folder_count, item.count)
+            }
+            is ListItem.Media -> {
+                val m = holder as MediaHolder
+                m.title.text = item.item.title
+                m.subtitle.text = "${typeLabel(m.itemView.context, item.item.mimeType)} · ${formatSize(item.item.size)}"
+                m.itemView.setOnClickListener { onClick(item.item) }
+                loadThumbnail(m.thumbnail, item.item)
+            }
+        }
     }
 
     private fun loadThumbnail(imageView: ImageView, item: MediaItem) {
@@ -119,7 +200,12 @@ class MediaAdapter(
         }
     }
 
-    class ItemHolder(view: View) : RecyclerView.ViewHolder(view) {
+    class HeaderHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val folderName: TextView = view.findViewById(R.id.folder_name)
+        val count: TextView = view.findViewById(R.id.folder_count)
+    }
+
+    class MediaHolder(view: View) : RecyclerView.ViewHolder(view) {
         val thumbnail: ImageView = view.findViewById(R.id.media_thumbnail)
         val title: TextView = view.findViewById(R.id.media_title)
         val subtitle: TextView = view.findViewById(R.id.media_subtitle)
