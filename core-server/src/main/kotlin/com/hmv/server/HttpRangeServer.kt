@@ -34,11 +34,14 @@ class HttpRangeServer(
         private const val MIME_JSON = "application/json; charset=utf-8"
         private const val MIME_OCTET = "application/octet-stream"
         private const val STATUS_OK = "200 OK"
+        private const val STATUS_CREATED = "201 Created"
+        private const val STATUS_NO_CONTENT = "204 No Content"
         private const val STATUS_PARTIAL = "206 Partial Content"
         private const val STATUS_RANGE_416 = "416 Range Not Satisfiable"
         private const val STATUS_NOT_FOUND = "404 Not Found"
         private const val STATUS_BAD_REQUEST = "400 Bad Request"
         private val THUMBNAIL_PATTERN = Regex("^/media/[^/]+/thumbnail$")
+        private val RENAME_PATTERN = Regex("^/media/[^/]+/rename$")
     }
 
     private val serverSocket = ServerSocket(port)
@@ -76,7 +79,9 @@ class HttpRangeServer(
         val method: String,
         val path: String,
         val headers: Map<String, String>,
-        val body: String = ""
+        val body: String = "",
+        val rawBody: ByteArray? = null,
+        val queryParams: Map<String, String> = emptyMap()
     )
 
     private fun handleClient(socket: Socket) {
@@ -87,9 +92,20 @@ class HttpRangeServer(
                 val out = it.getOutputStream()
                 when {
                     request == null -> writeStatus(out, STATUS_BAD_REQUEST)
-                    request.method != "GET" && request.method != "HEAD" && request.method != "POST" -> writeStatus(out, STATUS_BAD_REQUEST)
+                    request.method != "GET" && request.method != "HEAD" &&
+                        request.method != "POST" && request.method != "DELETE" -> writeStatus(out, STATUS_BAD_REQUEST)
+
+                    // POST 端点
                     request.method == "POST" && request.path == "/play" -> handlePlayCommand(out, request)
-                    request.path == "/media" || request.path == "/media/" -> handleList(out, request.method)
+                    request.method == "POST" && request.path == "/upload" -> handleUpload(out, request)
+                    request.method == "POST" && request.path == "/folder" -> handleCreateFolder(out, request)
+                    request.method == "POST" && request.path.matches(RENAME_PATTERN) -> handleRename(out, request)
+
+                    // DELETE 端点
+                    request.method == "DELETE" && request.path.startsWith("/media/") -> handleDelete(out, request)
+
+                    // GET 端点
+                    request.path == "/media" || request.path == "/media/" -> handleList(out, request)
                     request.path.matches(THUMBNAIL_PATTERN) -> handleThumbnail(out, request)
                     request.path.startsWith("/media/") -> handleStream(out, bufferSize, request)
                     else -> writeStatus(out, STATUS_NOT_FOUND)
@@ -125,7 +141,20 @@ class HttpRangeServer(
         if (requestLine.size < 3) return null
         val method = requestLine[0]
         val rawPath = requestLine[1]
-        val path = if (rawPath.contains('%')) decodePath(rawPath) else rawPath
+
+        // 分离路径和查询参数
+        val questionMark = rawPath.indexOf('?')
+        val path = if (questionMark >= 0) {
+            val p = rawPath.substring(0, questionMark)
+            if (p.contains('%')) decodePath(p) else p
+        } else {
+            if (rawPath.contains('%')) decodePath(rawPath) else rawPath
+        }
+        val queryParams = if (questionMark >= 0) {
+            parseQueryParams(rawPath.substring(questionMark + 1))
+        } else {
+            emptyMap()
+        }
 
         val headers = LinkedHashMap<String, String>()
         for (i in 1 until lines.size) {
@@ -136,17 +165,38 @@ class HttpRangeServer(
             }
         }
 
-        // 读取 POST 请求体
+        // 读取请求体
         var body = ""
-        if (method == "POST") {
-            val contentLength = headers["content-length"]?.toIntOrNull() ?: 0
-            if (contentLength > 0 && contentLength <= 64 * 1024) {
+        var rawBody: ByteArray? = null
+        val contentLength = headers["content-length"]?.toIntOrNull() ?: 0
+        if (contentLength > 0) {
+            val isMultipart = headers["content-type"]?.contains("multipart/form-data") == true
+            if (isMultipart) {
+                // multipart 上传：读取原始字节（最大 500MB）
+                if (contentLength <= 500 * 1024 * 1024) {
+                    rawBody = stream.readNBytes(contentLength)
+                }
+            } else if (contentLength <= 64 * 1024) {
+                // 普通 JSON body
                 val bodyBytes = stream.readNBytes(contentLength)
                 body = bodyBytes.toString(Charsets.UTF_8)
             }
         }
 
-        return HttpRequest(method, path, headers, body)
+        return HttpRequest(method, path, headers, body, rawBody, queryParams)
+    }
+
+    private fun parseQueryParams(query: String): Map<String, String> {
+        val params = mutableMapOf<String, String>()
+        query.split("&").forEach { pair ->
+            val eq = pair.indexOf('=')
+            if (eq > 0) {
+                val key = decodePath(pair.substring(0, eq))
+                val value = decodePath(pair.substring(eq + 1))
+                params[key] = value
+            }
+        }
+        return params
     }
 
     private fun indexOfHeaderEnd(text: String): Int {
@@ -165,11 +215,12 @@ class HttpRangeServer(
 
     // ---------- 列表 ----------
 
-    private fun handleList(out: OutputStream, method: String) {
-        val items = repository.list()
+    private fun handleList(out: OutputStream, request: HttpRequest) {
+        val path = request.queryParams["path"]
+        val items = if (path != null) repository.list(path) else repository.list()
         val json = buildJsonList(items)
         val body = json.toByteArray(Charsets.UTF_8)
-        if (method == "HEAD") {
+        if (request.method == "HEAD") {
             writeHead(out, STATUS_OK, MIME_JSON, body.size.toLong(), emptyMap())
         } else {
             writeResponse(out, STATUS_OK, MIME_JSON, body.size.toLong(), body)
@@ -242,6 +293,189 @@ class HttpRangeServer(
         val pattern = "\"$key\"\\s*:\\s*(\\d+)"
         val regex = Regex(pattern)
         return regex.find(json)?.groupValues?.get(1)?.toLongOrNull() ?: 0L
+    }
+
+    // ---------- 文件上传 ----------
+
+    private fun handleUpload(out: OutputStream, request: HttpRequest) {
+        val rawBody = request.rawBody
+        if (rawBody == null || rawBody.isEmpty()) {
+            writeStatus(out, STATUS_BAD_REQUEST)
+            return
+        }
+
+        val contentType = request.headers["content-type"] ?: ""
+        val boundary = extractMultipartBoundary(contentType)
+        if (boundary == null) {
+            writeStatus(out, STATUS_BAD_REQUEST)
+            return
+        }
+
+        try {
+            val multipart = parseMultipart(rawBody, boundary)
+            val fileName = multipart["filename"] ?: multipart["file"]?.let { extractFileName(it) } ?: "upload_${System.currentTimeMillis()}"
+            val path = multipart["path"] ?: "/"
+            val fileData = multipart["fileData"]?.toByteArray(Charsets.ISO_8859_1)
+
+            if (fileData == null) {
+                writeStatus(out, STATUS_BAD_REQUEST)
+                return
+            }
+
+            val result = repository.uploadFile(fileName, path, fileData)
+            if (result.success) {
+                val response = """{"status":"ok","id":"${escapeJson(result.id ?: "")}"}"""
+                writeResponse(out, STATUS_CREATED, MIME_JSON, response.toByteArray().size.toLong(), response.toByteArray())
+            } else {
+                writeStatus(out, STATUS_BAD_REQUEST)
+            }
+        } catch (e: Exception) {
+            writeStatus(out, STATUS_BAD_REQUEST)
+        }
+    }
+
+    private fun extractMultipartBoundary(contentType: String): String? {
+        val idx = contentType.indexOf("boundary=")
+        if (idx < 0) return null
+        return contentType.substring(idx + 9).trim().removeSurrounding("\"")
+    }
+
+    private fun parseMultipart(body: ByteArray, boundary: String): Map<String, String> {
+        val result = mutableMapOf<String, String>()
+        val boundaryBytes = ("--$boundary").toByteArray(Charsets.ISO_8859_1)
+        val endBytes = ("--$boundary--").toByteArray(Charsets.ISO_8859_1)
+
+        var pos = 0
+        while (pos < body.size) {
+            // 查找 boundary
+            val start = indexOf(body, boundaryBytes, pos)
+            if (start < 0) break
+
+            val afterBoundary = start + boundaryBytes.size
+            if (afterBoundary + 2 > body.size) break
+
+            // 检查是否是结束 boundary
+            if (body[afterBoundary] == '-'.toInt().toByte() && body[afterBoundary + 1] == '-'.toInt().toByte()) break
+
+            // 跳过 \r\n
+            val headerStart = afterBoundary + 2
+            if (headerStart >= body.size) break
+
+            // 查找头部结束
+            val headerEnd = indexOf(body, "\r\n\r\n".toByteArray(Charsets.ISO_8859_1), headerStart)
+            if (headerEnd < 0) break
+
+            val headerBytes = body.copyOfRange(headerStart, headerEnd)
+            val header = headerBytes.toString(Charsets.ISO_8859_1)
+
+            // 解析 Content-Disposition
+            val name = extractDispositionName(header)
+            val filename = extractDispositionFilename(header)
+
+            // 数据开始
+            val dataStart = headerEnd + 4
+            // 查找下一个 boundary
+            val dataEnd = indexOf(body, "\r\n--$boundary".toByteArray(Charsets.ISO_8859_1), dataStart)
+            if (dataEnd < 0) break
+
+            if (filename != null) {
+                // 文件字段：保存文件名和数据
+                result["filename"] = filename
+                result["fileData"] = body.copyOfRange(dataStart, dataEnd).toString(Charsets.ISO_8859_1)
+            } else if (name != null) {
+                // 普通字段
+                result[name] = body.copyOfRange(dataStart, dataEnd).toString(Charsets.UTF_8)
+            }
+
+            pos = dataEnd
+        }
+        return result
+    }
+
+    private fun indexOf(data: ByteArray, pattern: ByteArray, start: Int): Int {
+        if (pattern.isEmpty()) return start
+        val max = data.size - pattern.size
+        for (i in start..max) {
+            var match = true
+            for (j in pattern.indices) {
+                if (data[i + j] != pattern[j]) {
+                    match = false
+                    break
+                }
+            }
+            if (match) return i
+        }
+        return -1
+    }
+
+    private fun extractDispositionName(header: String): String? {
+        val regex = Regex("""name="([^"]+)"""")
+        return regex.find(header)?.groupValues?.get(1)
+    }
+
+    private fun extractDispositionFilename(header: String): String? {
+        val regex = Regex("""filename="([^"]+)"""")
+        return regex.find(header)?.groupValues?.get(1)
+    }
+
+    private fun extractFileName(contentDisposition: String): String? {
+        val regex = Regex("""filename="([^"]+)"""")
+        return regex.find(contentDisposition)?.groupValues?.get(1)
+    }
+
+    // ---------- 删除文件 ----------
+
+    private fun handleDelete(out: OutputStream, request: HttpRequest) {
+        val id = request.path.removePrefix("/media/")
+        if (id.isEmpty()) {
+            writeStatus(out, STATUS_NOT_FOUND)
+            return
+        }
+        val result = repository.deleteFile(id)
+        if (result.success) {
+            writeResponse(out, STATUS_OK, MIME_JSON, """{"status":"ok"}""".toByteArray().size.toLong(), """{"status":"ok"}""".toByteArray())
+        } else {
+            writeStatus(out, STATUS_NOT_FOUND)
+        }
+    }
+
+    // ---------- 重命名文件 ----------
+
+    private fun handleRename(out: OutputStream, request: HttpRequest) {
+        val id = request.path.removeSuffix("/rename").removePrefix("/media/")
+        if (id.isEmpty()) {
+            writeStatus(out, STATUS_NOT_FOUND)
+            return
+        }
+        val newName = extractJsonString(request.body, "name") ?: ""
+        if (newName.isEmpty()) {
+            writeStatus(out, STATUS_BAD_REQUEST)
+            return
+        }
+        val result = repository.renameFile(id, newName)
+        if (result.success) {
+            val response = """{"status":"ok","id":"${escapeJson(result.id ?: "")}"}"""
+            writeResponse(out, STATUS_OK, MIME_JSON, response.toByteArray().size.toLong(), response.toByteArray())
+        } else {
+            writeStatus(out, STATUS_BAD_REQUEST)
+        }
+    }
+
+    // ---------- 创建文件夹 ----------
+
+    private fun handleCreateFolder(out: OutputStream, request: HttpRequest) {
+        val name = extractJsonString(request.body, "name") ?: ""
+        val path = extractJsonString(request.body, "path") ?: "/"
+        if (name.isEmpty()) {
+            writeStatus(out, STATUS_BAD_REQUEST)
+            return
+        }
+        val result = repository.createFolder(name, path)
+        if (result.success) {
+            writeResponse(out, STATUS_CREATED, MIME_JSON, """{"status":"ok"}""".toByteArray().size.toLong(), """{"status":"ok"}""".toByteArray())
+        } else {
+            writeStatus(out, STATUS_BAD_REQUEST)
+        }
     }
 
     // ---------- 缩略图 ----------
