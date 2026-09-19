@@ -1,9 +1,11 @@
 import { router } from '@kit.ArkUI';
 import { media } from '@kit.MediaKit';
 import { window } from '@kit.ArkUI';
+import { promptAction } from '@kit.ArkUI';
 import { RemoteMediaClient } from '../common/RemoteMediaClient';
 import { PlayProgressManager } from '../common/PlayProgressManager';
 import { PlaybackSpeedManager } from '../common/PlaybackSpeedManager';
+import { NetworkMonitor, NetworkListener } from '../common/NetworkMonitor';
 import { DiscoveredDevice, QueueItem } from '../model/MediaModels';
 
 const SPEED_OPTIONS: number[] = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
@@ -22,11 +24,16 @@ struct Player {
   @State duration: number = 0;
   @State showQueue: boolean = false;
   @State showSpeedMenu: boolean = false;
+  @State showCastDialog: boolean = false;
+  @State networkError: boolean = false;
+  @State devices: DiscoveredDevice[] = [];
+  @State isRemotePlayback: boolean = false;
 
   private avPlayer: media.AVPlayer | null = null;
   private progressManager: PlayProgressManager = new PlayProgressManager(this.getUIContext().getHostContext());
   private speedManager: PlaybackSpeedManager = new PlaybackSpeedManager(this.getUIContext().getHostContext());
   private remoteClient: RemoteMediaClient = new RemoteMediaClient();
+  private networkMonitor: NetworkMonitor = new NetworkMonitor(this.getUIContext().getHostContext());
   private timer: number = -1;
 
   aboutToAppear(): void {
@@ -37,6 +44,7 @@ struct Player {
       let mediaIds = params['mediaIds'] as string[];
       let startIndex = params['startIndex'] as number;
       let deviceAddress = params['deviceAddress'] as string;
+      let devices = params['devices'] as DiscoveredDevice[];
 
       if (urls) {
         for (let i = 0; i < urls.length; i++) {
@@ -49,13 +57,21 @@ struct Player {
         }
         this.queueIndex = startIndex || 0;
       }
+
+      if (devices) {
+        this.devices = devices;
+      }
+
+      this.isRemotePlayback = deviceAddress !== '';
     }
 
     this.loadSpeed();
+    this.startNetworkMonitor();
   }
 
   aboutToDisappear(): void {
     this.releasePlayer();
+    this.networkMonitor.stopListening();
     if (this.timer >= 0) {
       clearInterval(this.timer);
     }
@@ -65,6 +81,28 @@ struct Player {
     this.currentSpeed = await this.speedManager.restore();
     this.speedIndex = SPEED_OPTIONS.indexOf(this.currentSpeed);
     if (this.speedIndex < 0) this.speedIndex = 2;
+  }
+
+  private startNetworkMonitor(): void {
+    if (!this.isRemotePlayback) return;
+
+    this.networkMonitor.startListening({
+      onNetworkAvailable: () => {
+        if (this.networkError) {
+          this.networkError = false;
+          this.avPlayer?.prepare();
+          this.avPlayer?.play();
+          promptAction.showToast({ message: '网络已恢复' });
+        }
+      },
+      onNetworkLost: () => {
+        if (this.isPlaying) {
+          this.avPlayer?.pause();
+        }
+        this.networkError = true;
+        promptAction.showToast({ message: '网络已断开，无法播放远程媒体' });
+      }
+    } as NetworkListener);
   }
 
   private async startPlayback(): Promise<void> {
@@ -95,6 +133,7 @@ struct Player {
       avPlayer.on('error', (err: BusinessError) => {
         console.error('Playback error:', err.message);
         this.isPlaying = false;
+        promptAction.showToast({ message: `播放失败: ${err.message}` });
       });
 
       await avPlayer.url = item.url;
@@ -187,6 +226,26 @@ struct Player {
     }
   }
 
+  private async castToDevice(device: DiscoveredDevice): Promise<void> {
+    if (this.queueIndex < 0 || this.queueIndex >= this.queue.length) return;
+
+    let item = this.queue[this.queueIndex];
+    let success = await this.remoteClient.sendCastCommand(
+      device.address,
+      item.id,
+      item.title,
+      this.currentPosition
+    );
+
+    if (success) {
+      promptAction.showToast({ message: `投屏成功: ${device.name}` });
+    } else {
+      promptAction.showToast({ message: '投屏失败' });
+    }
+
+    this.showCastDialog = false;
+  }
+
   private removeQueueItem(index: number): void {
     if (index < 0 || index >= this.queue.length) return;
 
@@ -235,6 +294,61 @@ struct Player {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   }
 
+  @Builder
+  buildCastDialog() {
+    Column() {
+      Text('投屏到...')
+        .fontSize(18)
+        .fontWeight(FontWeight.Bold)
+        .padding({ left: 16, top: 16, bottom: 8 })
+
+      if (this.devices.length === 0) {
+        Text('无可用设备')
+          .fontSize(14)
+          .fontColor('#999999')
+          .padding({ top: 24, bottom: 24 })
+      } else {
+        List() {
+          ForEach(this.devices, (device: DiscoveredDevice) => {
+            ListItem() {
+              Row() {
+                Column() {
+                  Text(device.name)
+                    .fontSize(16)
+                    .fontColor('#212121')
+                  Text(`${device.host}:${device.port}`)
+                    .fontSize(12)
+                    .fontColor('#757575')
+                }
+                .alignItems(HorizontalAlign.Start)
+                .layoutWeight(1)
+              }
+              .width('100%')
+              .height(56)
+              .padding({ left: 16, right: 16 })
+              .onClick(() => this.castToDevice(device))
+            }
+          })
+        }
+        .width('100%')
+        .height(200)
+      }
+
+      Row() {
+        Text('取消')
+          .fontSize(16)
+          .fontColor('#1E88E5')
+          .onClick(() => { this.showCastDialog = false; })
+      }
+      .width('100%')
+      .height(48)
+      .justifyContent(FlexAlign.Center)
+    }
+    .width('100%')
+    .backgroundColor('#FFFFFF')
+    .borderRadius(12)
+  }
+
   build() {
     Column() {
       // 标题栏
@@ -260,7 +374,11 @@ struct Player {
 
       // 播放器区域
       Column() {
-        if (!this.isPlaying && this.queue.length === 0) {
+        if (this.networkError) {
+          Text('网络已断开')
+            .fontSize(16)
+            .fontColor('#FF5252')
+        } else if (!this.isPlaying && this.queue.length === 0) {
           Text('无媒体')
             .fontSize(16)
             .fontColor('#666666')
@@ -333,10 +451,17 @@ struct Player {
           .fontColor('#FFFFFF')
           .onClick(() => this.playNext())
 
+        // 投屏按钮
+        Text('📡')
+          .fontSize(20)
+          .fontColor('#1E88E5')
+          .onClick(() => { this.showCastDialog = true; })
+
         // 全屏
         Text(this.isFullscreen ? '⛶' : '⛶')
           .fontSize(20)
           .fontColor('#1E88E5')
+          .margin({ left: 8 })
           .onClick(() => this.toggleFullscreen())
       }
       .width('100%')

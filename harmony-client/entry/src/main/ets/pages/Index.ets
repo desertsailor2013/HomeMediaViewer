@@ -1,6 +1,7 @@
 import { router } from '@kit.ArkUI';
+import { promptAction } from '@kit.ArkUI';
 import { RemoteMediaClient } from '../common/RemoteMediaClient';
-import { FavoritesManager } from '../common/FavoritesManager';
+import { FavoritesManager, FavoriteDevice } from '../common/FavoritesManager';
 import { MediaScanner } from '../common/MediaScanner';
 import { NsdHelper, DeviceListener } from '../common/NsdHelper';
 import { MediaItem, DiscoveredDevice } from '../model/MediaModels';
@@ -16,6 +17,9 @@ struct Index {
   @State isGroupByFolder: boolean = false;
   @State typeFilter: string = 'all';
   @State expandedFolders: Set<string> = new Set();
+  @State showAliasDialog: boolean = false;
+  @State aliasDevice: DiscoveredDevice | null = null;
+  @State aliasText: string = '';
 
   private remoteClient: RemoteMediaClient = new RemoteMediaClient();
   private favoritesManager: FavoritesManager = new FavoritesManager(this.getUIContext().getHostContext());
@@ -154,7 +158,8 @@ struct Index {
         titles: titles,
         mediaIds: mediaIds,
         startIndex: index,
-        deviceAddress: this.currentDevice ? this.currentDevice.address : ''
+        deviceAddress: this.currentDevice ? this.currentDevice.address : '',
+        devices: this.devices
       }
     });
   }
@@ -197,7 +202,8 @@ struct Index {
             ListItem() {
               Row() {
                 Column() {
-                  Text(device.name)
+                  Text(this.favoritesManager.isFavorite(device.name) ?
+                    this.favoritesManager.getAlias(device.name) || device.name : device.name)
                     .fontSize(16)
                     .fontColor('#212121')
                   Text(`${device.host}:${device.port}`)
@@ -211,6 +217,19 @@ struct Index {
                   Text('★')
                     .fontSize(20)
                     .fontColor('#FFC107')
+                    .onClick(() => {
+                      this.aliasDevice = device;
+                      this.aliasText = this.favoritesManager.getAlias(device.name);
+                      this.showAliasDialog = true;
+                    })
+                } else {
+                  Text('☆')
+                    .fontSize(20)
+                    .fontColor('#CCCCCC')
+                    .onClick(() => {
+                      this.favoritesManager.addFavorite(device);
+                      promptAction.showToast({ message: '已收藏' });
+                    })
                 }
               }
               .width('100%')
@@ -419,5 +438,71 @@ struct Index {
     }
     .width('100%')
     .height('100%')
+
+    // 别名对话框
+    if (this.showAliasDialog) {
+      Column() {
+        Column() {
+          Text('设置别名')
+            .fontSize(18)
+            .fontWeight(FontWeight.Bold)
+            .margin({ bottom: 16 })
+
+          TextInput({ text: this.aliasText, placeholder: '输入设备别名' })
+            .width('100%')
+            .height(48)
+            .onChange((value: string) => {
+              this.aliasText = value;
+            })
+
+          Row() {
+            Text('取消')
+              .fontSize(16)
+              .fontColor('#757575')
+              .onClick(() => {
+                this.showAliasDialog = false;
+              })
+
+            Text('保存')
+              .fontSize(16)
+              .fontColor('#1E88E5')
+              .margin({ left: 24 })
+              .onClick(() => {
+                if (this.aliasDevice) {
+                  this.favoritesManager.setAlias(this.aliasDevice.name, this.aliasText);
+                  promptAction.showToast({ message: '别名已保存' });
+                }
+                this.showAliasDialog = false;
+              })
+
+            Text('取消收藏')
+              .fontSize(16)
+              .fontColor('#FF5252')
+              .margin({ left: 24 })
+              .onClick(() => {
+                if (this.aliasDevice) {
+                  this.favoritesManager.removeFavorite(this.aliasDevice.name);
+                  promptAction.showToast({ message: '已取消收藏' });
+                }
+                this.showAliasDialog = false;
+              })
+          }
+          .width('100%')
+          .justifyContent(FlexAlign.End)
+          .margin({ top: 16 })
+        }
+        .width(300)
+        .padding(24)
+        .backgroundColor('#FFFFFF')
+        .borderRadius(12)
+      }
+      .width('100%')
+      .height('100%')
+      .backgroundColor('#80000000')
+      .justifyContent(FlexAlign.Center)
+      .onClick(() => {
+        this.showAliasDialog = false;
+      })
+    }
   }
 }

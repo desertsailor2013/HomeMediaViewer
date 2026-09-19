@@ -6,11 +6,36 @@ const PREFS_NAME = 'favorites';
 const KEY_FAVORITES = 'favorites_list';
 
 /**
+ * 收藏设备项
+ */
+export class FavoriteDevice {
+  name: string = '';
+  host: string = '';
+  port: number = 0;
+  alias: string = '';
+
+  constructor(name: string = '', host: string = '', port: number = 0, alias: string = '') {
+    this.name = name;
+    this.host = host;
+    this.port = port;
+    this.alias = alias;
+  }
+
+  get displayName(): string {
+    return this.alias || this.name;
+  }
+
+  get address(): string {
+    return `http://${this.host}:${this.port}`;
+  }
+}
+
+/**
  * 设备收藏管理器
  */
 export class FavoritesManager {
   private context: Context;
-  private favorites: DiscoveredDevice[] = [];
+  private favorites: FavoriteDevice[] = [];
 
   constructor(context: Context) {
     this.context = context;
@@ -28,10 +53,11 @@ export class FavoritesManager {
       this.favorites = [];
       for (let i = 0; i < items.length; i++) {
         let item = items[i];
-        let device = new DiscoveredDevice(
+        let device = new FavoriteDevice(
           item['name'] as string,
           item['host'] as string,
-          item['port'] as number
+          item['port'] as number,
+          item['alias'] as string
         );
         this.favorites.push(device);
       }
@@ -53,7 +79,8 @@ export class FavoritesManager {
         items.push({
           'name': device.name,
           'host': device.host,
-          'port': device.port
+          'port': device.port,
+          'alias': device.alias
         });
       }
       await store.put(KEY_FAVORITES, JSON.stringify(items));
@@ -66,10 +93,13 @@ export class FavoritesManager {
   /**
    * 添加收藏
    */
-  async addFavorite(device: DiscoveredDevice): Promise<void> {
+  async addFavorite(device: DiscoveredDevice, alias: string = ''): Promise<void> {
     if (!this.isFavorite(device.name)) {
-      this.favorites.push(device);
+      let fav = new FavoriteDevice(device.name, device.host, device.port, alias);
+      this.favorites.push(fav);
       await this.saveFavorites();
+    } else {
+      await this.updateDeviceAddress(device.name, device.host, device.port);
     }
   }
 
@@ -77,7 +107,7 @@ export class FavoritesManager {
    * 移除收藏
    */
   async removeFavorite(deviceName: string): Promise<void> {
-    this.favorites = this.favorites.filter((d: DiscoveredDevice) => d.name !== deviceName);
+    this.favorites = this.favorites.filter((d: FavoriteDevice) => d.name !== deviceName);
     await this.saveFavorites();
   }
 
@@ -98,13 +128,44 @@ export class FavoritesManager {
    * 检查是否已收藏
    */
   isFavorite(deviceName: string): boolean {
-    return this.favorites.some((d: DiscoveredDevice) => d.name === deviceName);
+    return this.favorites.some((d: FavoriteDevice) => d.name === deviceName);
+  }
+
+  /**
+   * 设置设备别名
+   */
+  async setAlias(deviceName: string, alias: string): Promise<void> {
+    let device = this.favorites.find((d: FavoriteDevice) => d.name === deviceName);
+    if (device) {
+      device.alias = alias;
+      await this.saveFavorites();
+    }
+  }
+
+  /**
+   * 获取设备别名
+   */
+  getAlias(deviceName: string): string {
+    let device = this.favorites.find((d: FavoriteDevice) => d.name === deviceName);
+    return device ? device.alias : '';
+  }
+
+  /**
+   * 更新设备地址
+   */
+  async updateDeviceAddress(deviceName: string, host: string, port: number): Promise<void> {
+    let device = this.favorites.find((d: FavoriteDevice) => d.name === deviceName);
+    if (device) {
+      device.host = host;
+      device.port = port;
+      await this.saveFavorites();
+    }
   }
 
   /**
    * 获取所有收藏
    */
-  getFavorites(): DiscoveredDevice[] {
+  getFavorites(): FavoriteDevice[] {
     return this.favorites;
   }
 }

@@ -73,4 +73,39 @@ export class RemoteMediaClient {
       httpRequest.destroy();
     }
   }
+
+  /**
+   * 发送投屏命令到目标设备
+   */
+  async sendCastCommand(
+    deviceAddress: string,
+    mediaId: string,
+    title: string,
+    position: number
+  ): Promise<boolean> {
+    let httpRequest = http.createHttp();
+    try {
+      let url = `${deviceAddress}/play`;
+      let body = JSON.stringify({
+        mediaId: mediaId,
+        title: title,
+        position: position
+      });
+
+      let response = await httpRequest.request(url, {
+        method: http.RequestMethod.POST,
+        header: { 'Content-Type': 'application/json' },
+        extraData: body,
+        readTimeout: this.timeout,
+        connectTimeout: this.timeout
+      });
+
+      return response.responseCode === 200;
+    } catch (err) {
+      console.error(TAG, `sendCastCommand failed: ${err}`);
+      return false;
+    } finally {
+      httpRequest.destroy();
+    }
+  }
 }
