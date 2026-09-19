@@ -14,7 +14,7 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaItem as ExoMediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
@@ -23,13 +23,10 @@ import androidx.media3.ui.PlayerView
 /**
  * 播放页面。
  *
- * 接收 [EXTRA_URL]（http://ip:端口/media/{id}）交给 ExoPlayer 播放，
- * 拖动进度条时播放器会自动发送 HTTP Range 请求，验证服务端的 Range 能力。
- *
- * 支持：
- * - 播放进度保存与续播
- * - 横竖屏切换 + 沉浸式全屏
- * - 网络断开检测与提示
+ * 支持播放队列：
+ * - 通过 [EXTRA_URLS] / [EXTRA_TITLES] / [EXTRA_MEDIA_IDS] 传入列表
+ * - ExoPlayer 使用 [ConcatenatingMediaSource] 实现连续播放
+ * - 通过 [EXTRA_START_INDEX] 指定起始播放位置
  */
 class PlayerActivity : AppCompatActivity() {
 
@@ -38,7 +35,12 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var loading: ProgressBar
     private lateinit var errorView: TextView
     private lateinit var fullscreenBtn: ImageButton
-    private var mediaId: String = ""
+    private lateinit var queueInfo: TextView
+
+    private var urls: List<String> = emptyList()
+    private var titles: List<String> = emptyList()
+    private var mediaIds: List<String> = emptyList()
+    private var startIndex: Int = 0
     private var seekToOnReady: Long = 0L
     private var isFullscreen = false
     private var isRemotePlayback = false
@@ -53,18 +55,27 @@ class PlayerActivity : AppCompatActivity() {
         loading = findViewById(R.id.loading)
         errorView = findViewById(R.id.error_view)
         fullscreenBtn = findViewById(R.id.btn_fullscreen)
+        queueInfo = findViewById(R.id.queue_info)
 
-        val url = intent.getStringExtra(EXTRA_URL) ?: run {
-            finish()
-            return
+        // 解析传入的媒体列表
+        urls = intent.getStringArrayListExtra(EXTRA_URLS) ?: run {
+            // 兼容旧的单文件启动方式
+            val singleUrl = intent.getStringExtra(EXTRA_URL) ?: run {
+                finish()
+                return
+            }
+            listOf(singleUrl)
         }
-        mediaId = intent.getStringExtra(EXTRA_MEDIA_ID) ?: ""
-        title = intent.getStringExtra(EXTRA_TITLE)
-        isRemotePlayback = !url.startsWith("http://127.0.0.1") && !url.startsWith("http://localhost")
+        titles = intent.getStringArrayListExtra(EXTRA_TITLES) ?: urls.map { "" }
+        mediaIds = intent.getStringArrayListExtra(EXTRA_MEDIA_IDS) ?: urls.map { "" }
+        startIndex = intent.getIntExtra(EXTRA_START_INDEX, 0)
+
+        isRemotePlayback = urls.any { !it.startsWith("127.0.0.1") && !it.startsWith("localhost") }
 
         // 恢复上次播放进度
-        seekToOnReady = if (mediaId.isNotEmpty()) {
-            PlayProgressManager.restore(this, mediaId)
+        val currentMediaId = mediaIds.getOrElse(startIndex) { "" }
+        seekToOnReady = if (currentMediaId.isNotEmpty()) {
+            PlayProgressManager.restore(this, currentMediaId)
         } else 0L
 
         loading.visibility = View.VISIBLE
@@ -87,6 +98,7 @@ class PlayerActivity : AppCompatActivity() {
                     Player.STATE_READY -> {
                         loading.visibility = View.GONE
                         errorView.visibility = View.GONE
+                        updateQueueInfo()
                         if (seekToOnReady > 0) {
                             player.seekTo(seekToOnReady)
                             seekToOnReady = 0L
@@ -94,11 +106,18 @@ class PlayerActivity : AppCompatActivity() {
                     }
                     Player.STATE_ENDED -> {
                         loading.visibility = View.GONE
-                        if (mediaId.isNotEmpty()) {
-                            PlayProgressManager.clear(this@PlayerActivity, mediaId)
+                        val pos = player.currentMediaItemIndex
+                        val id = mediaIds.getOrElse(pos) { "" }
+                        if (id.isNotEmpty()) {
+                            PlayProgressManager.clear(this@PlayerActivity, id)
                         }
                     }
                 }
+            }
+
+            override fun onMediaItemTransition(mediaItem: ExoMediaItem?, reason: Int) {
+                // 切换到下一个媒体项时，清除上一个的进度
+                updateQueueInfo()
             }
 
             override fun onPlayerError(error: PlaybackException) {
@@ -115,17 +134,27 @@ class PlayerActivity : AppCompatActivity() {
 
         fullscreenBtn.setOnClickListener { toggleFullscreen() }
 
-        val item = MediaItem.Builder()
-            .setUri(url)
-            .setMediaMetadata(
-                androidx.media3.common.MediaMetadata.Builder()
-                    .setTitle(intent.getStringExtra(EXTRA_TITLE) ?: "")
-                    .build()
-            )
-            .build()
-        player.setMediaItem(item)
+        // 构建播放队列
+        val mediaItems = mutableListOf<ExoMediaItem>()
+        for (i in urls.indices) {
+            val item = ExoMediaItem.Builder()
+                .setUri(urls[i])
+                .setMediaMetadata(
+                    androidx.media3.common.MediaMetadata.Builder()
+                        .setTitle(titles.getOrElse(i) { "" })
+                        .build()
+                )
+                .build()
+            mediaItems.add(item)
+        }
+
+        player.setMediaItems(mediaItems)
         player.prepare()
+        player.seekTo(startIndex, 0L)
         player.playWhenReady = true
+
+        // 更新队列信息
+        updateQueueInfo()
 
         // 初始进入全屏
         enterFullscreen()
@@ -136,6 +165,16 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
+    private fun updateQueueInfo() {
+        if (urls.size <= 1) {
+            queueInfo.visibility = View.GONE
+            return
+        }
+        val pos = player?.currentMediaItemIndex?.plus(1) ?: 1
+        queueInfo.text = getString(R.string.queue_info, pos, urls.size)
+        queueInfo.visibility = View.VISIBLE
+    }
+
     private fun startNetworkMonitor() {
         networkMonitor = NetworkMonitor(this)
         networkMonitor?.startListening(object : NetworkMonitor.NetworkListener {
@@ -143,7 +182,6 @@ class PlayerActivity : AppCompatActivity() {
                 runOnUiThread {
                     if (isNetworkLost) {
                         isNetworkLost = false
-                        // 网络恢复，尝试重新加载
                         errorView.visibility = View.GONE
                         loading.visibility = View.VISIBLE
                         player?.let { p ->
@@ -231,24 +269,45 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun saveProgress() {
-        if (mediaId.isEmpty()) return
         val p = player ?: return
+        val pos = p.currentMediaItemIndex
+        val id = mediaIds.getOrElse(pos) { "" }
+        if (id.isEmpty()) return
         val position = p.currentPosition
         val duration = p.duration
         if (duration > 0) {
-            PlayProgressManager.save(this, mediaId, position, duration)
+            PlayProgressManager.save(this, id, position, duration)
         }
     }
 
     companion object {
         const val EXTRA_URL = "extra_url"
+        const val EXTRA_URLS = "extra_urls"
         const val EXTRA_TITLE = "extra_title"
+        const val EXTRA_TITLES = "extra_titles"
         const val EXTRA_MEDIA_ID = "extra_media_id"
+        const val EXTRA_MEDIA_IDS = "extra_media_ids"
+        const val EXTRA_START_INDEX = "extra_start_index"
 
+        /** 单文件启动（兼容旧版） */
         fun createIntent(context: Context, url: String, title: String, mediaId: String = ""): Intent =
             Intent(context, PlayerActivity::class.java)
                 .putExtra(EXTRA_URL, url)
                 .putExtra(EXTRA_TITLE, title)
                 .putExtra(EXTRA_MEDIA_ID, mediaId)
+
+        /** 播放队列启动 */
+        fun createIntent(
+            context: Context,
+            urls: List<String>,
+            titles: List<String>,
+            mediaIds: List<String>,
+            startIndex: Int
+        ): Intent =
+            Intent(context, PlayerActivity::class.java)
+                .putStringArrayListExtra(EXTRA_URLS, ArrayList(urls))
+                .putStringArrayListExtra(EXTRA_TITLES, ArrayList(titles))
+                .putStringArrayListExtra(EXTRA_MEDIA_IDS, ArrayList(mediaIds))
+                .putExtra(EXTRA_START_INDEX, startIndex)
     }
 }

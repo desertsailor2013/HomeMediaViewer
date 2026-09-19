@@ -34,6 +34,9 @@ class MediaAdapter(
         applyFilter()
     }
 
+    /** 获取当前过滤后的媒体列表（用于播放队列） */
+    fun getCurrentItems(): List<MediaItem> = items.toList()
+
     fun setSearchQuery(query: String) {
         searchQuery = query.trim()
         applyFilter()
