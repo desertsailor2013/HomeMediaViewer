@@ -35,4 +35,11 @@
     <string name="folder_count">%1$d 个文件</string>
     <string name="group_by_folder">按文件夹</string>
     <string name="flat_view">平铺</string>
+    <string name="favorite">收藏</string>
+    <string name="device_alias_hint">输入设备别名</string>
+    <string name="set_alias">设置别名</string>
+    <string name="device_favorited">已收藏</string>
+    <string name="alias_saved">别名已保存</string>
+    <string name="remove_favorite">取消收藏</string>
+    <string name="favorite_removed">已取消收藏</string>
 </resources>
