@@ -42,6 +42,7 @@ class HttpRangeServer(
         private const val STATUS_BAD_REQUEST = "400 Bad Request"
         private val THUMBNAIL_PATTERN = Regex("^/media/[^/]+/thumbnail$")
         private val RENAME_PATTERN = Regex("^/media/[^/]+/rename$")
+        private val SCAN_PATH_PATTERN = Regex("^/scanpaths/.*$")
     }
 
     private val serverSocket = ServerSocket(port)
@@ -100,12 +101,16 @@ class HttpRangeServer(
                     request.method == "POST" && request.path == "/upload" -> handleUpload(out, request)
                     request.method == "POST" && request.path == "/folder" -> handleCreateFolder(out, request)
                     request.method == "POST" && request.path.matches(RENAME_PATTERN) -> handleRename(out, request)
+                    request.method == "POST" && request.path == "/scanpaths" -> handleAddScanPath(out, request)
+                    request.method == "POST" && request.path == "/scanpaths/rescan" -> handleRescanAll(out, request)
 
                     // DELETE 端点
                     request.method == "DELETE" && request.path.startsWith("/media/") -> handleDelete(out, request)
+                    request.method == "DELETE" && request.path.matches(SCAN_PATH_PATTERN) -> handleRemoveScanPath(out, request)
 
                     // GET 端点
                     request.path == "/media" || request.path == "/media/" -> handleList(out, request)
+                    request.path == "/scanpaths" -> handleGetScanPaths(out, request)
                     request.path.matches(THUMBNAIL_PATTERN) -> handleThumbnail(out, request)
                     request.path.startsWith("/media/") -> handleStream(out, bufferSize, request)
                     else -> writeStatus(out, STATUS_NOT_FOUND)
@@ -475,6 +480,63 @@ class HttpRangeServer(
             writeResponse(out, STATUS_CREATED, MIME_JSON, """{"status":"ok"}""".toByteArray().size.toLong(), """{"status":"ok"}""".toByteArray())
         } else {
             writeStatus(out, STATUS_BAD_REQUEST)
+        }
+    }
+
+    // ---------- 扫描路径管理 ----------
+
+    private fun handleGetScanPaths(out: OutputStream, request: HttpRequest) {
+        val paths = repository.getScanPaths()
+        val sb = StringBuilder("[")
+        paths.forEachIndexed { i, p ->
+            if (i > 0) sb.append(',')
+            sb.append('"').append(escapeJson(p)).append('"')
+        }
+        sb.append(']')
+        val response = sb.toString()
+        writeResponse(out, STATUS_OK, MIME_JSON, response.toByteArray().size.toLong(), response.toByteArray())
+    }
+
+    private fun handleAddScanPath(out: OutputStream, request: HttpRequest) {
+        val path = extractJsonString(request.body, "path") ?: ""
+        if (path.isEmpty()) {
+            writeStatus(out, STATUS_BAD_REQUEST)
+            return
+        }
+        val result = repository.addScanPath(path)
+        if (result.success) {
+            val response = """{"status":"ok","message":"${escapeJson(result.message)}"}"""
+            writeResponse(out, STATUS_CREATED, MIME_JSON, response.toByteArray().size.toLong(), response.toByteArray())
+        } else {
+            val response = """{"status":"error","message":"${escapeJson(result.message)}"}"""
+            writeResponse(out, STATUS_BAD_REQUEST, MIME_JSON, response.toByteArray().size.toLong(), response.toByteArray())
+        }
+    }
+
+    private fun handleRemoveScanPath(out: OutputStream, request: HttpRequest) {
+        val path = request.path.removePrefix("/scanpaths/")
+        if (path.isEmpty()) {
+            writeStatus(out, STATUS_BAD_REQUEST)
+            return
+        }
+        val decodedPath = if (path.contains('%')) decodePath(path) else path
+        val result = repository.removeScanPath(decodedPath)
+        if (result.success) {
+            val response = """{"status":"ok"}"""
+            writeResponse(out, STATUS_OK, MIME_JSON, response.toByteArray().size.toLong(), response.toByteArray())
+        } else {
+            writeStatus(out, STATUS_NOT_FOUND)
+        }
+    }
+
+    private fun handleRescanAll(out: OutputStream, request: HttpRequest) {
+        val result = repository.rescanAll()
+        if (result.success) {
+            val response = """{"status":"ok","message":"${escapeJson(result.message)}"}"""
+            writeResponse(out, STATUS_OK, MIME_JSON, response.toByteArray().size.toLong(), response.toByteArray())
+        } else {
+            val response = """{"status":"error","message":"${escapeJson(result.message)}"}"""
+            writeResponse(out, STATUS_BAD_REQUEST, MIME_JSON, response.toByteArray().size.toLong(), response.toByteArray())
         }
     }
 
