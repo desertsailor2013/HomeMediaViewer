@@ -21,7 +21,12 @@
 - **媒体分组浏览** — 按文件夹名分组显示，一键切换分组/扁平视图
 - **设备别名与收藏** — 自定义别名（如"客厅电视"），星标收藏常用设备，收藏设备优先显示
 - **跨设备投屏控制** — 将本机播放内容推送到指定设备继续播放，支持断点续播
-- **播放速度调节** — 0.5x / 0.75x / 1.0x / 1.25x / 1.5x / 2.0x 循环切换
+- **播放速度调节** — 0.5x / 0.75x / 1.0x / 1.25x / 1.5x / 2.0x 循环切换，长按快速重置
+- **分组可折叠** — 点击分组 Header 展开/折叠文件夹，显示媒体数量统计
+- **队列管理面板** — 底部弹窗查看完整队列，支持点击跳转、移除队列项
+- **设备选择器** — 播放页投屏按钮弹出设备列表，选择目标设备投屏，显示投屏状态反馈
+- **收藏设备自动重连** — 启动时直连收藏设备 IP:Port，减少 mDNS 等待时间
+- **速度偏好持久化** — 播放速度自动保存，下次打开自动应用
 
 ## 技术栈
 
@@ -32,6 +37,7 @@
 | Gradle | 8.7 (wrapper) |
 | AndroidX Media3 (ExoPlayer) | 1.4.1 |
 | Coil | 2.7.0 |
+| Material Design | 1.12.0 |
 | minSdk | 26 |
 | targetSdk / compileSdk | 35 |
 
@@ -40,17 +46,20 @@
 ```
 ├── app/                         Android 应用模块
 │   └── src/main/kotlin/com/hmv/app/
-│       ├── MainActivity.kt      主界面：权限申请 + 设备列表 + 搜索筛选 + 分组切换
-│       ├── PlayerActivity.kt    ExoPlayer 播放页（队列/全屏/进度保存/网络检测/投屏接收/变速）
+│       ├── MainActivity.kt      主界面：权限申请 + 设备列表 + 搜索筛选 + 分组切换 + 收藏设备重连
+│       ├── PlayerActivity.kt    ExoPlayer 播放页（队列/全屏/进度保存/网络检测/投屏接收/变速/速度持久化）
 │       ├── MediaServerService.kt 前台 Service，承载 HTTP 服务器 + 投屏指令广播
 │       ├── MediaScanner.kt      MediaStore 扫描视频/音频（含 folderName 提取）
 │       ├── NsdHelper.kt         mDNS 注册与发现
 │       ├── DeviceAdapter.kt     设备列表适配器（收藏星标 + 别名显示）
-│       ├── MediaAdapter.kt      媒体列表适配器（分组 Header + 缩略图 + 搜索过滤 + DiffUtil）
-│       ├── DeviceFavoritesManager.kt 设备收藏与别名持久化（SharedPreferences + JSON）
+│       ├── MediaAdapter.kt      媒体列表适配器（分组 Header + 可折叠 + 缩略图 + 搜索过滤 + DiffUtil）
+│       ├── DeviceFavoritesManager.kt 设备收藏与别名持久化（SharedPreferences + JSON + IP:Port 更新）
+│       ├── QueueAdapter.kt      播放队列适配器（跳转 + 移除）
+│       ├── DeviceCastAdapter.kt 投屏设备选择器适配器
 │       ├── ContentMediaRepository.kt  content:// URI → RangeReadable 桥接
 │       ├── RemoteMediaClient.kt 远程设备媒体列表拉取 + 投屏指令发送
 │       ├── PlayProgressManager.kt 播放进度持久化
+│       ├── PlaybackSpeedManager.kt 播放速度偏好持久化
 │       └── NetworkMonitor.kt    网络状态监听
 ├── core-server/                 纯 Kotlin/JVM 模块（零 Android 依赖）
 │   └── src/main/kotlin/com/hmv/server/
@@ -91,15 +100,17 @@ APK 产物：`app/build/outputs/apk/debug/app-debug.apk`
 设备 A                              设备 B
 ┌─────────────────────┐    LAN    ┌─────────────────────┐
 │  MediaServerService │◄─────────│  NsdHelper 发现      │
-│  HTTP+Range Server  │          │  点击设备 → 拉取列表  │
+│  HTTP+Range Server  │          │  设备选择器 → 投屏    │
 │  mDNS 注册          │  /media  │  ExoPlayer 流式播放   │
+│  POST /play         │  /play   │  队列管理 / 分组浏览   │
 └─────────────────────┘          └─────────────────────┘
 ```
 
 1. 每台设备启动后扫描本地媒体，开启 HTTP 服务并注册 mDNS
-2. 设备间通过 mDNS 自动发现彼此
-3. 点击远程设备 → 拉取 `/media` JSON 列表
-4. 点击媒体项 → ExoPlayer 播放远程 URL，支持拖动（Range 206）
+2. 设备间通过 mDNS 自动发现彼此，收藏设备直连加速
+3. 点击远程设备 → 拉取 `/media` JSON 列表，支持分组浏览
+4. 点击媒体项 → ExoPlayer 播放远程 URL，支持队列播放、拖动（Range 206）
+5. 投屏 → 点击投屏按钮 → 选择目标设备 → `POST /play` 发送播放指令
 
 ## 权限说明
 
@@ -138,6 +149,7 @@ APK 产物：`app/build/outputs/apk/debug/app-debug.apk`
 - [x] V2-3 设备别名与收藏
 - [x] V2-4 跨设备投屏控制
 - [x] V2-5 播放速度调节
+- [x] V2 优化：分组可折叠 + 队列管理面板 + 设备选择器 + 收藏自动重连 + 速度持久化
 - [ ] CI/CD 自动构建
 
 ## License
