@@ -17,6 +17,11 @@
 - **网络状态感知** — 播放页网络断开提示，设备离线自动切回本地
 - **前台 Service** — HTTP 服务绑定前台 Service，后台运行不被系统回收
 - **零依赖服务端** — core-server 模块纯 Kotlin/JVM，无第三方 HTTP 库
+- **播放队列 / 连续播放** — 选择多个媒体项加入队列，自动连播，队列指示器（第 X/Y 项）
+- **媒体分组浏览** — 按文件夹名分组显示，一键切换分组/扁平视图
+- **设备别名与收藏** — 自定义别名（如"客厅电视"），星标收藏常用设备，收藏设备优先显示
+- **跨设备投屏控制** — 将本机播放内容推送到指定设备继续播放，支持断点续播
+- **播放速度调节** — 0.5x / 0.75x / 1.0x / 1.25x / 1.5x / 2.0x 循环切换
 
 ## 技术栈
 
@@ -35,21 +40,22 @@
 ```
 ├── app/                         Android 应用模块
 │   └── src/main/kotlin/com/hmv/app/
-│       ├── MainActivity.kt      主界面：权限申请 + 设备列表 + 搜索筛选
-│       ├── PlayerActivity.kt    ExoPlayer 播放页（全屏/进度保存/网络检测）
-│       ├── MediaServerService.kt 前台 Service，承载 HTTP 服务器
-│       ├── MediaScanner.kt      MediaStore 扫描视频/音频
+│       ├── MainActivity.kt      主界面：权限申请 + 设备列表 + 搜索筛选 + 分组切换
+│       ├── PlayerActivity.kt    ExoPlayer 播放页（队列/全屏/进度保存/网络检测/投屏接收/变速）
+│       ├── MediaServerService.kt 前台 Service，承载 HTTP 服务器 + 投屏指令广播
+│       ├── MediaScanner.kt      MediaStore 扫描视频/音频（含 folderName 提取）
 │       ├── NsdHelper.kt         mDNS 注册与发现
-│       ├── DeviceAdapter.kt     设备列表 RecyclerView 适配器
-│       ├── MediaAdapter.kt      媒体列表适配器（缩略图 + 搜索过滤 + DiffUtil）
+│       ├── DeviceAdapter.kt     设备列表适配器（收藏星标 + 别名显示）
+│       ├── MediaAdapter.kt      媒体列表适配器（分组 Header + 缩略图 + 搜索过滤 + DiffUtil）
+│       ├── DeviceFavoritesManager.kt 设备收藏与别名持久化（SharedPreferences + JSON）
 │       ├── ContentMediaRepository.kt  content:// URI → RangeReadable 桥接
-│       ├── RemoteMediaClient.kt 远程设备媒体列表拉取
+│       ├── RemoteMediaClient.kt 远程设备媒体列表拉取 + 投屏指令发送
 │       ├── PlayProgressManager.kt 播放进度持久化
 │       └── NetworkMonitor.kt    网络状态监听
 ├── core-server/                 纯 Kotlin/JVM 模块（零 Android 依赖）
 │   └── src/main/kotlin/com/hmv/server/
-│       ├── HttpRangeServer.kt   核心：ServerSocket HTTP+Range 服务
-│       ├── MediaRepository.kt   媒体数据源抽象 + MediaItem 模型
+│       ├── HttpRangeServer.kt   核心：ServerSocket HTTP+Range 服务 + POST /play
+│       ├── MediaRepository.kt   媒体数据源抽象 + MediaItem 模型（含 folderName）
 │       ├── FileMediaRepository.kt 文件系统实现
 │       ├── RangeParser.kt       HTTP Range 头解析
 │       └── RangeReadable.kt     可 seek 只读源接口
@@ -60,7 +66,7 @@
 ## 构建与运行
 
 ```bash
-./gradlew :core-server:test      # 运行服务端单测（20 项）
+./gradlew :core-server:test      # 运行服务端单测（22 项）
 ./gradlew :app:assembleDebug     # 构建调试 APK
 ./gradlew :app:assembleRelease   # 构建 Release APK（含 R8 混淆）
 ```
@@ -75,6 +81,7 @@ APK 产物：`app/build/outputs/apk/debug/app-debug.apk`
 | `GET /media/{id}` | 返回整文件字节流（200） |
 | `GET /media/{id}` + `Range: bytes=100-199` | 206 Partial Content |
 | `GET /media/{id}/thumbnail` | 返回缩略图（JPEG/PNG） |
+| `POST /play` | 投屏控制，JSON body：`{"mediaId":"...","title":"...","position":0}` |
 
 支持 `bytes=start-`（开区间）、`bytes=-N`（后缀）、越界返回 416、HEAD 请求。
 
@@ -126,6 +133,11 @@ APK 产物：`app/build/outputs/apk/debug/app-debug.apk`
 - [x] 前台 Service + 签名配置
 - [x] M5 缩略图 / 播放进度保存 / 搜索筛选 / 深色模式 / 全屏播放 / 网络感知
 - [x] R8 混淆优化
+- [x] V2-1 播放队列 / 连续播放
+- [x] V2-2 媒体分组浏览
+- [x] V2-3 设备别名与收藏
+- [x] V2-4 跨设备投屏控制
+- [x] V2-5 播放速度调节
 - [ ] CI/CD 自动构建
 
 ## License
