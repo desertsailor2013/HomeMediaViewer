@@ -46,4 +46,13 @@
     <string name="cast_not_found">未找到媒体：%1$s</string>
     <string name="cast_to">投屏到</string>
     <string name="speed">播放速度</string>
+    <string name="queue_title">播放队列</string>
+    <string name="queue_empty">队列为空</string>
+    <string name="queue_remove">移除</string>
+    <string name="queue_item_remove">已从队列移除</string>
+    <string name="cast_select_device">投屏到…</string>
+    <string name="cast_no_device">无可用设备</string>
+    <string name="cast_success">投屏成功</string>
+    <string name="cast_failed">投屏失败</string>
+    <string name="unknown_title">未知标题</string>
 </resources>

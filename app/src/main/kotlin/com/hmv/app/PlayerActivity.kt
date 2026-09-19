@@ -78,8 +78,10 @@ class PlayerActivity : AppCompatActivity() {
         queueInfo = findViewById(R.id.queue_info)
         speedBtn = findViewById(R.id.btn_speed)
         speedLabel = findViewById(R.id.speed_label)
+        val queueBtn = findViewById<ImageButton>(R.id.btn_queue)
 
         speedBtn.setOnClickListener { cycleSpeed() }
+        queueBtn.setOnClickListener { showQueuePanel() }
 
         // 解析传入的媒体列表
         urls = intent.getStringArrayListExtra(EXTRA_URLS) ?: run {
@@ -229,6 +231,81 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun updateSpeedLabel() {
         speedLabel.text = "${speedOptions[currentSpeedIndex]}x"
+    }
+
+    private fun showQueuePanel() {
+        val panel = layoutInflater.inflate(R.layout.sheet_queue, null)
+        val dialog = com.google.android.material.bottomsheet.BottomSheetDialog(this)
+        dialog.setContentView(panel)
+
+        val queueList = panel.findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.queue_list)
+        val emptyView = panel.findViewById<TextView>(R.id.queue_empty)
+
+        val adapter = QueueAdapter(
+            onItemClicked = { position ->
+                player?.seekTo(position, 0)
+                player?.playWhenReady = true
+                dialog.dismiss()
+            },
+            onItemRemoved = { position ->
+                removeQueueItem(position)
+                if (urls.isEmpty()) {
+                    dialog.dismiss()
+                    finish()
+                }
+            }
+        )
+
+        queueList.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
+        queueList.adapter = adapter
+
+        val queueItems = titles.mapIndexed { index, title ->
+            QueueAdapter.QueueItem(
+                title = title.ifEmpty { getString(R.string.unknown_title) },
+                subtitle = mediaIds.getOrElse(index) { "" }
+            )
+        }
+        val currentPos = player?.currentMediaItemIndex ?: 0
+        adapter.submit(queueItems, currentPos)
+
+        emptyView.visibility = if (queueItems.isEmpty()) View.VISIBLE else View.GONE
+        queueList.visibility = if (queueItems.isEmpty()) View.GONE else View.VISIBLE
+
+        dialog.show()
+    }
+
+    private fun removeQueueItem(position: Int) {
+        if (position < 0 || position >= urls.size) return
+
+        val wasPlaying = player?.isPlaying == true
+        val currentPos = player?.currentMediaItemIndex ?: 0
+
+        urls = urls.toMutableList().apply { removeAt(position) }
+        titles = titles.toMutableList().apply { removeAt(position) }
+        mediaIds = mediaIds.toMutableList().apply { removeAt(position) }
+
+        // 重建播放器
+        player?.release()
+        val p = ExoPlayer.Builder(this).build()
+        playerView.player = p
+        this.player = p
+
+        val mediaItems = urls.map { ExoMediaItem.fromUri(it) }
+        p.setMediaItems(mediaItems)
+        p.prepare()
+
+        // 恢复播放位置
+        val newPos = if (position < currentPos) currentPos - 1
+        else if (position == currentPos && currentPos >= urls.size) urls.size - 1
+        else currentPos
+
+        if (newPos >= 0 && newPos < urls.size) {
+            p.seekTo(newPos, 0L)
+            p.playWhenReady = wasPlaying
+        }
+
+        updateQueueInfo()
+        Toast.makeText(this, getString(R.string.queue_item_remove), Toast.LENGTH_SHORT).show()
     }
 
     private fun startNetworkMonitor() {

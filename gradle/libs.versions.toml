@@ -6,6 +6,7 @@ appcompat = "1.7.0"
 recyclerview = "1.3.2"
 media3 = "1.4.1"
 coil = "2.7.0"
+material = "1.12.0"
 junit = "4.13.2"
 androidxTestJunit = "1.2.1"
 espresso = "3.6.1"
@@ -18,6 +19,7 @@ androidx-recyclerview = { group = "androidx.recyclerview", name = "recyclerview"
 androidx-media3-exoplayer = { group = "androidx.media3", name = "media3-exoplayer", version.ref = "media3" }
 androidx-media3-ui = { group = "androidx.media3", name = "media3-ui", version.ref = "media3" }
 coil = { group = "io.coil-kt", name = "coil", version.ref = "coil" }
+material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxTestJunit" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espresso" }
 

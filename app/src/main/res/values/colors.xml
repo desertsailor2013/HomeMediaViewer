@@ -4,6 +4,7 @@
     <color name="colorPrimary">#1E88E5</color>
     <color name="colorPrimaryDark">#1565C0</color>
     <color name="colorAccent">#FFC107</color>
+    <color name="accent">#1E88E5</color>
 
     <!-- 筛选按钮 -->
     <color name="filter_selected">#1E88E5</color>
