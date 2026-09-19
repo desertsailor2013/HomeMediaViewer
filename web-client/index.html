@@ -30,6 +30,34 @@
                 <span class="nav-icon">&#9776;</span>
                 <span class="nav-text">播放队列</span>
             </a>
+            <a href="#" class="nav-item" data-page="history">
+                <span class="nav-icon">&#9716;</span>
+                <span class="nav-text">播放历史</span>
+            </a>
+            <a href="#" class="nav-item" data-page="filemanager">
+                <span class="nav-icon">&#128194;</span>
+                <span class="nav-text">文件管理</span>
+            </a>
+            <a href="#" class="nav-item" data-page="stats">
+                <span class="nav-icon">&#128200;</span>
+                <span class="nav-text">统计面板</span>
+            </a>
+            <a href="#" class="nav-item" data-page="network">
+                <span class="nav-icon">&#128246;</span>
+                <span class="nav-text">网络诊断</span>
+            </a>
+            <a href="#" class="nav-item" data-page="shortcuts">
+                <span class="nav-icon">&#9000;</span>
+                <span class="nav-text">快捷键</span>
+            </a>
+            <a href="#" class="nav-item" data-page="i18n">
+                <span class="nav-icon">&#127760;</span>
+                <span class="nav-text">多语言</span>
+            </a>
+            <a href="#" class="nav-item" data-page="export">
+                <span class="nav-icon">&#128228;</span>
+                <span class="nav-text">数据导出</span>
+            </a>
             <a href="#" class="nav-item" data-page="settings">
                 <span class="nav-icon">&#9881;</span>
                 <span class="nav-text">设置</span>
@@ -123,6 +151,268 @@
                 </div>
                 <div id="queue-list-container" class="list-container">
                     <div class="empty-hint"><p>队列为空</p></div>
+                </div>
+            </div>
+
+            <!-- ===== 播放历史页面 ===== -->
+            <div id="page-history" class="page">
+                <div class="page-header">
+                    <h3>播放历史</h3>
+                    <button id="btn-clear-history" class="btn-secondary">清空历史</button>
+                </div>
+                <div id="history-list-container" class="list-container">
+                    <div class="empty-hint"><p>暂无播放记录</p></div>
+                </div>
+            </div>
+
+            <!-- ===== 文件管理页面 ===== -->
+            <div id="page-filemanager" class="page">
+                <div class="page-header">
+                    <h3>文件管理</h3>
+                    <div class="page-actions">
+                        <button id="btn-upload" class="btn-primary">上传文件</button>
+                        <button id="btn-new-folder" class="btn-secondary">新建文件夹</button>
+                    </div>
+                </div>
+                <div class="toolbar">
+                    <div class="breadcrumb" id="fm-breadcrumb">
+                        <span class="breadcrumb-item" data-path="/">根目录</span>
+                    </div>
+                    <div class="search-box">
+                        <input type="text" id="fm-search" placeholder="搜索文件...">
+                    </div>
+                </div>
+                <div id="filemanager-container" class="list-container">
+                    <div class="empty-hint"><p>暂无文件</p></div>
+                </div>
+            </div>
+
+            <!-- ===== 统计面板页面 ===== -->
+            <div id="page-stats" class="page">
+                <div class="page-header">
+                    <h3>统计面板</h3>
+                    <button id="btn-refresh-stats" class="btn-secondary">刷新</button>
+                </div>
+                <div class="stats-container">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon">&#127916;</div>
+                            <div class="stat-value" id="stat-play-count">0</div>
+                            <div class="stat-label">播放次数</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">&#9202;</div>
+                            <div class="stat-value" id="stat-total-time">0s</div>
+                            <div class="stat-label">总播放时长</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">&#128190;</div>
+                            <div class="stat-value" id="stat-total-size">0MB</div>
+                            <div class="stat-label">已播放流量</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">&#128241;</div>
+                            <div class="stat-value" id="stat-device-count">0</div>
+                            <div class="stat-label">连接设备数</div>
+                        </div>
+                    </div>
+                    <div class="stats-section">
+                        <h4>最近播放</h4>
+                        <div id="stats-recent-list" class="list-container"></div>
+                    </div>
+                    <div class="stats-section">
+                        <h4>文件类型分布</h4>
+                        <div id="stats-type-chart" class="chart-container"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== 网络诊断页面 ===== -->
+            <div id="page-network" class="page">
+                <div class="page-header">
+                    <h3>网络诊断</h3>
+                    <button id="btn-run-diag" class="btn-primary">开始诊断</button>
+                </div>
+                <div class="diag-container">
+                    <div class="diag-card">
+                        <div class="diag-header">
+                            <span class="diag-icon">&#128246;</span>
+                            <span class="diag-title">连接状态</span>
+                        </div>
+                        <div class="diag-body">
+                            <div class="diag-row">
+                                <span>服务器地址</span>
+                                <span id="diag-host">-</span>
+                            </div>
+                            <div class="diag-row">
+                                <span>端口</span>
+                                <span id="diag-port">-</span>
+                            </div>
+                            <div class="diag-row">
+                                <span>连接状态</span>
+                                <span id="diag-status">-</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="diag-card">
+                        <div class="diag-header">
+                            <span class="diag-icon">&#9889;</span>
+                            <span class="diag-title">延迟测试</span>
+                        </div>
+                        <div class="diag-body">
+                            <div class="diag-row">
+                                <span>响应时间</span>
+                                <span id="diag-latency">-</span>
+                            </div>
+                            <div class="diag-row">
+                                <span>测试结果</span>
+                                <span id="diag-latency-result">-</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="diag-card">
+                        <div class="diag-header">
+                            <span class="diag-icon">&#128640;</span>
+                            <span class="diag-title">带宽测试</span>
+                        </div>
+                        <div class="diag-body">
+                            <div class="diag-row">
+                                <span>下载速度</span>
+                                <span id="diag-bandwidth">-</span>
+                            </div>
+                            <div class="diag-row">
+                                <span>测试进度</span>
+                                <div class="progress-bar"><div id="diag-progress" class="progress-fill"></div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== 快捷键帮助页面 ===== -->
+            <div id="page-shortcuts" class="page">
+                <div class="page-header">
+                    <h3>快捷键帮助</h3>
+                </div>
+                <div class="shortcuts-container">
+                    <div class="shortcut-section">
+                        <h4>播放控制</h4>
+                        <div class="shortcut-list">
+                            <div class="shortcut-item"><kbd>Space</kbd><span>播放 / 暂停</span></div>
+                            <div class="shortcut-item"><kbd>&#8592;</kbd><span>快退 10 秒</span></div>
+                            <div class="shortcut-item"><kbd>&#8594;</kbd><span>快进 10 秒</span></div>
+                            <div class="shortcut-item"><kbd>&#8593;</kbd><span>音量增加</span></div>
+                            <div class="shortcut-item"><kbd>&#8595;</kbd><span>音量减少</span></div>
+                            <div class="shortcut-item"><kbd>M</kbd><span>静音 / 取消静音</span></div>
+                        </div>
+                    </div>
+                    <div class="shortcut-section">
+                        <h4>播放速度</h4>
+                        <div class="shortcut-list">
+                            <div class="shortcut-item"><kbd>Shift</kbd> + <kbd>&#8592;</kbd><span>降低速度</span></div>
+                            <div class="shortcut-item"><kbd>Shift</kbd> + <kbd>&#8594;</kbd><span>提高速度</span></div>
+                            <div class="shortcut-item"><kbd>Shift</kbd> + <kbd>R</kbd><span>重置速度</span></div>
+                        </div>
+                    </div>
+                    <div class="shortcut-section">
+                        <h4>队列操作</h4>
+                        <div class="shortcut-list">
+                            <div class="shortcut-item"><kbd>Q</kbd><span>添加到队列</span></div>
+                            <div class="shortcut-item"><kbd>N</kbd><span>播放下一个</span></div>
+                            <div class="shortcut-item"><kbd>P</kbd><span>播放上一个</span></div>
+                        </div>
+                    </div>
+                    <div class="shortcut-section">
+                        <h4>界面操作</h4>
+                        <div class="shortcut-list">
+                            <div class="shortcut-item"><kbd>F</kbd><span>全屏切换</span></div>
+                            <div class="shortcut-item"><kbd>D</kbd><span>深色模式切换</span></div>
+                            <div class="shortcut-item"><kbd>Esc</kbd><span>关闭弹窗 / 退出全屏</span></div>
+                            <div class="shortcut-item"><kbd>1</kbd>-<kbd>9</kbd><span>跳转到指定页</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== 多语言页面 ===== -->
+            <div id="page-i18n" class="page">
+                <div class="page-header">
+                    <h3>多语言</h3>
+                </div>
+                <div class="i18n-container">
+                    <div class="i18n-current">
+                        <h4>当前语言</h4>
+                        <div class="i18n-current-lang" id="i18n-current-lang">简体中文</div>
+                    </div>
+                    <div class="i18n-list">
+                        <h4>可用语言</h4>
+                        <div class="lang-option active" data-lang="zh-CN">
+                            <span class="lang-flag">&#127464;&#127475;</span>
+                            <span class="lang-name">简体中文</span>
+                            <span class="lang-check">&#10003;</span>
+                        </div>
+                        <div class="lang-option" data-lang="en">
+                            <span class="lang-flag">&#127468;&#127463;</span>
+                            <span class="lang-name">English</span>
+                            <span class="lang-check"></span>
+                        </div>
+                        <div class="lang-option" data-lang="ja">
+                            <span class="lang-flag">&#127471;&#127477;</span>
+                            <span class="lang-name">日本語</span>
+                            <span class="lang-check"></span>
+                        </div>
+                        <div class="lang-option" data-lang="ko">
+                            <span class="lang-flag">&#127472;&#127479;</span>
+                            <span class="lang-name">한국어</span>
+                            <span class="lang-check"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== 数据导出页面 ===== -->
+            <div id="page-export" class="page">
+                <div class="page-header">
+                    <h3>数据导出 / 导入</h3>
+                </div>
+                <div class="export-container">
+                    <div class="export-section">
+                        <h4>导出数据</h4>
+                        <p class="export-desc">将收藏、设置、队列等偏好数据导出为 JSON 文件</p>
+                        <div class="export-options">
+                            <label class="export-option">
+                                <input type="checkbox" id="export-favorites" checked>
+                                <span>收藏设备</span>
+                            </label>
+                            <label class="export-option">
+                                <input type="checkbox" id="export-settings" checked>
+                                <span>应用设置</span>
+                            </label>
+                            <label class="export-option">
+                                <input type="checkbox" id="export-queue" checked>
+                                <span>播放队列</span>
+                            </label>
+                            <label class="export-option">
+                                <input type="checkbox" id="export-history" checked>
+                                <span>播放历史</span>
+                            </label>
+                            <label class="export-option">
+                                <input type="checkbox" id="export-progress" checked>
+                                <span>播放进度</span>
+                            </label>
+                        </div>
+                        <button id="btn-export-data" class="btn-primary">导出数据</button>
+                    </div>
+                    <div class="export-section">
+                        <h4>导入数据</h4>
+                        <p class="export-desc">从 JSON 文件恢复收藏、设置、队列等偏好数据</p>
+                        <div class="import-area" id="import-area">
+                            <p>将 JSON 文件拖拽到此处，或点击选择文件</p>
+                            <input type="file" id="import-file" accept=".json" hidden>
+                            <button id="btn-select-file" class="btn-secondary">选择文件</button>
+                        </div>
+                        <button id="btn-import-data" class="btn-primary" disabled>导入数据</button>
+                    </div>
                 </div>
             </div>
 
@@ -289,6 +579,13 @@
     <script src="js/device.js"></script>
     <script src="js/queue.js"></script>
     <script src="js/favorites.js"></script>
+    <script src="js/history.js"></script>
+    <script src="js/filemanager.js"></script>
+    <script src="js/stats.js"></script>
+    <script src="js/network.js"></script>
+    <script src="js/shortcuts.js"></script>
+    <script src="js/i18n.js"></script>
+    <script src="js/export.js"></script>
     <script src="js/settings.js"></script>
     <script src="js/app.js"></script>
 </body>

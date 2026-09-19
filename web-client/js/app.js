@@ -19,6 +19,13 @@ const App = {
         Queue.init();
         Favorites.init();
         Settings.init();
+        History.init();
+        FileManager.init();
+        Stats.init();
+        Network.init();
+        Shortcuts.init();
+        I18n.init();
+        ExportImport.init();
         this.setupNavigation();
         this.setupToolbar();
         this.setupTheme();
@@ -77,6 +84,13 @@ const App = {
             devices: '设备列表',
             favorites: '收藏设备',
             queue: '播放队列',
+            history: '播放历史',
+            filemanager: '文件管理',
+            stats: '统计面板',
+            network: '网络诊断',
+            shortcuts: '快捷键帮助',
+            i18n: '多语言',
+            export: '数据导出',
             settings: '设置',
             about: '关于'
         };
@@ -86,6 +100,13 @@ const App = {
         if (page === 'favorites') Favorites.render();
         if (page === 'queue') Queue.render();
         if (page === 'devices') this.renderDeviceList();
+        if (page === 'history') History.render();
+        if (page === 'filemanager') FileManager.render();
+        if (page === 'stats') Stats.render();
+        if (page === 'network') Network.render();
+        if (page === 'shortcuts') Shortcuts.render();
+        if (page === 'i18n') I18n.render();
+        if (page === 'export') ExportImport.render();
 
         // 关闭移动端菜单
         document.getElementById('sidebar').classList.remove('open');
