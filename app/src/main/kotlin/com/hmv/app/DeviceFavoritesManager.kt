@@ -58,6 +58,18 @@ class DeviceFavoritesManager(context: Context) {
         if (favorites.none { it.name == device.name }) {
             favorites.add(FavoriteDevice(device.name, device.host, device.port, alias))
             saveFavorites(favorites)
+        } else {
+            // 更新已收藏设备的 IP:Port
+            updateDeviceAddress(device.name, device.host, device.port)
+        }
+    }
+
+    fun updateDeviceAddress(deviceName: String, host: String, port: Int) {
+        val favorites = getFavorites().toMutableList()
+        val index = favorites.indexOfFirst { it.name == deviceName }
+        if (index >= 0) {
+            favorites[index] = favorites[index].copy(host = host, port = port)
+            saveFavorites(favorites)
         }
     }
 
