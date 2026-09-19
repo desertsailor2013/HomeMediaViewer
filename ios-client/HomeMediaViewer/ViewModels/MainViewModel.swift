@@ -23,26 +23,36 @@ class MainViewModel: ObservableObject {
     
     private let remoteClient = RemoteMediaClient()
     let favoritesManager = FavoritesManager()
+    private let mediaScanner = MediaScanner()
     private var nsdHelper: NsdHelper?
     private var expandedFolders: Set<String> = []
+    private var cancellables = Set<AnyCancellable>()
     
     init() {
+        // 监听媒体扫描结果
+        mediaScanner.$mediaItems
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] items in
+                self?.mediaItems = items
+                self?.status = "本机媒体 - \(items.count) 个文件"
+            }
+            .store(in: &cancellables)
+        
         startDeviceDiscovery()
         loadLocalMedia()
     }
     
     /// 加载本地媒体
     func loadLocalMedia() {
-        status = "正在扫描媒体..."
+        status = "正在请求权限..."
         
-        // 使用 PHPhotoLibrary 获取本地媒体
-        // 注意：需要在 Info.plist 中添加 NSPhotoLibraryUsageDescription
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            // 这里应该使用 Photos framework 扫描本地媒体
-            // 暂时使用空列表
-            self.mediaItems = []
-            self.status = "本机媒体 - 0 个文件"
+        mediaScanner.requestAuthorization { [weak self] authorized in
+            if authorized {
+                self?.status = "正在扫描媒体..."
+                self?.mediaScanner.scanAll()
+            } else {
+                self?.status = "需要相册权限才能扫描本地媒体"
+            }
         }
     }
     
