@@ -199,7 +199,7 @@ const FileManager = {
                     App.showToast(`上传失败: ${file.name}`);
                 }
             }
-            App.showToast('上传完成');
+                    App.showToast(I18n.t('toast.uploadComplete'));
             this.loadFiles();
         };
         input.click();
@@ -214,7 +214,7 @@ const FileManager = {
 
         API.createFolder(name, this.currentPath)
             .then(() => {
-                App.showToast('文件夹已创建');
+                App.showToast(I18n.t('toast.folderCreated'));
                 this.loadFiles();
             })
             .catch(err => {
@@ -231,7 +231,7 @@ const FileManager = {
 
         API.renameFile(item.id, newName)
             .then(() => {
-                App.showToast('重命名成功');
+                App.showToast(I18n.t('toast.fileRenamed'));
                 this.loadFiles();
             })
             .catch(err => {
@@ -247,7 +247,7 @@ const FileManager = {
 
         API.deleteFile(item.id)
             .then(() => {
-                App.showToast('已删除');
+                App.showToast(I18n.t('toast.fileDeleted'));
                 this.loadFiles();
             })
             .catch(err => {

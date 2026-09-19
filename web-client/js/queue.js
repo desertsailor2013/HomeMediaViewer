@@ -22,7 +22,7 @@ const Queue = {
         const media = Player.getCurrentMedia();
         if (!media) return;
         this.add(media);
-        App.showToast('已添加到队列');
+        App.showToast(I18n.t('toast.addedToQueue'));
     },
 
     /**

@@ -53,7 +53,7 @@ const Favorites = {
 
             this.add({ name, host, port, alias });
             dialog.classList.add('hidden');
-            App.showToast('已添加收藏');
+            App.showToast(I18n.t('toast.addedToFavorites'));
         });
     },
 

@@ -16,7 +16,7 @@ const Network = {
         document.getElementById('diag-status').className = Device.isConnected ? 'text-success' : 'text-danger';
 
         if (!Device.isConnected) {
-            App.showToast('请先连接设备');
+            App.showToast(I18n.t('toast.noDevice'));
             return;
         }
 

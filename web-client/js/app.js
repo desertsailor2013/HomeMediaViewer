@@ -32,6 +32,9 @@ const App = {
         this.setupCastDialog();
         this.setupMobileMenu();
 
+        // 应用翻译
+        I18n.applyTranslations();
+
         // 初始渲染
         Favorites.render();
         Queue.render();
@@ -80,21 +83,21 @@ const App = {
 
         // 更新标题
         const titles = {
-            media: '媒体库',
-            devices: '设备列表',
-            favorites: '收藏设备',
-            queue: '播放队列',
-            history: '播放历史',
-            filemanager: '文件管理',
-            stats: '统计面板',
-            network: '网络诊断',
-            shortcuts: '快捷键帮助',
-            i18n: '多语言',
-            export: '数据导出',
-            settings: '设置',
-            about: '关于'
+            media: 'media.title',
+            devices: 'devices.title',
+            favorites: 'favorites.title',
+            queue: 'queue.title',
+            history: 'history.title',
+            filemanager: 'filemanager.title',
+            stats: 'stats.title',
+            network: 'network.title',
+            shortcuts: 'shortcuts.title',
+            i18n: 'i18n.title',
+            export: 'export.title',
+            settings: 'settings.title',
+            about: 'about.title'
         };
-        document.getElementById('page-title').textContent = titles[page] || page;
+        document.getElementById('page-title').textContent = I18n.t(titles[page] || page);
 
         // 刷新对应页面
         if (page === 'favorites') Favorites.render();

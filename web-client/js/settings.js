@@ -82,22 +82,22 @@ const Settings = {
      */
     setupClearButtons() {
         document.getElementById('btn-clear-progress').addEventListener('click', () => {
-            if (confirm('确定要清除所有播放进度吗？')) {
+            if (confirm(I18n.t('confirm.clearProgress'))) {
                 Object.keys(localStorage).forEach(key => {
                     if (key.startsWith('hmv_progress_')) {
                         localStorage.removeItem(key);
                     }
                 });
-                App.showToast('播放进度已清除');
+                App.showToast(I18n.t('settings.cleared'));
             }
         });
 
         document.getElementById('btn-clear-favorites').addEventListener('click', () => {
-            if (confirm('确定要清除所有收藏吗？')) {
+            if (confirm(I18n.t('confirm.clearFavorites'))) {
                 Favorites.items = [];
                 Favorites.saveToStorage();
                 Favorites.render();
-                App.showToast('收藏已清除');
+                App.showToast(I18n.t('settings.cleared'));
             }
         });
     },

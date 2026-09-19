@@ -64,7 +64,7 @@ const ExportImport = {
         a.download = `hmv-backup-${new Date().toISOString().slice(0, 10)}.json`;
         a.click();
         URL.revokeObjectURL(url);
-        App.showToast('数据已导出');
+        App.showToast(I18n.t('export.done'));
     },
 
     handleFileSelect(e) {
@@ -112,12 +112,12 @@ const ExportImport = {
                     });
                 }
 
-                App.showToast('数据已导入');
+                App.showToast(I18n.t('export.imported'));
                 this.pendingFile = null;
                 document.getElementById('btn-import-data').disabled = true;
                 document.getElementById('import-file').value = '';
             } catch (err) {
-                App.showToast('导入失败: 文件格式错误');
+                App.showToast(I18n.t('export.error'));
             }
         };
         reader.readAsText(this.pendingFile);
