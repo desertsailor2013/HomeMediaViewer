@@ -82,7 +82,21 @@ class PlayerActivity : AppCompatActivity() {
         speedLabel = findViewById(R.id.speed_label)
         val queueBtn = findViewById<ImageButton>(R.id.btn_queue)
 
+        // 加载保存的播放速度
+        val savedSpeed = PlaybackSpeedManager.restore(this)
+        currentSpeedIndex = speedOptions.indexOfFirst { it == savedSpeed }
+        if (currentSpeedIndex < 0) currentSpeedIndex = 2 // 默认 1.0x
+
         speedBtn.setOnClickListener { cycleSpeed() }
+        speedBtn.setOnLongClickListener {
+            // 长按快速重置为 1.0x
+            currentSpeedIndex = 2
+            player?.setPlaybackSpeed(speedOptions[currentSpeedIndex])
+            PlaybackSpeedManager.save(this, speedOptions[currentSpeedIndex])
+            updateSpeedLabel()
+            Toast.makeText(this, getString(R.string.speed_reset), Toast.LENGTH_SHORT).show()
+            true
+        }
         queueBtn.setOnClickListener { showQueuePanel() }
 
         val castBtn = findViewById<ImageButton>(R.id.btn_cast)
@@ -252,6 +266,7 @@ class PlayerActivity : AppCompatActivity() {
         currentSpeedIndex = (currentSpeedIndex + 1) % speedOptions.size
         val speed = speedOptions[currentSpeedIndex]
         player?.setPlaybackSpeed(speed)
+        PlaybackSpeedManager.save(this, speed)
         updateSpeedLabel()
     }
 
