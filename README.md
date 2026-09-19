@@ -1,119 +1,179 @@
 # HomeMediaViewer
 
-局域网内多台 Android 设备互相发现、浏览、点播彼此的音视频文件，无需拷贝源文件。
+局域网内多台设备（Android/iOS/鸿蒙/Web）互相发现、浏览、点播彼此的音视频文件，无需拷贝源文件。
 
 ## 功能特性
 
-- **mDNS 设备自动发现** — 基于 Android NSD（`_hmv._tcp.`），局域网内设备自动注册与发现，无需手动输入 IP
+### 核心功能（全平台）
+- **mDNS 设备自动发现** — 基于 `_hmv._tcp.` 服务类型，局域网内设备自动注册与发现
 - **HTTP + Range 流媒体服务** — 轻量内嵌 ServerSocket，支持整流/分段请求，拖动进度条自动触发 Range 206
 - **跨设备播放** — 选择发现的远程设备，获取其媒体列表并直接流式播放
-- **MediaStore 媒体扫描** — 自动扫描设备中的视频和音频文件（API 33+ 适配 READ_MEDIA_VIDEO/AUDIO）
-- **ExoPlayer 在线播放** — 基于 Media3 ExoPlayer，支持 HTTP 流播放、加载状态、错误处理
-- **缩略图展示** — 视频帧 / 音频封面自动生成，Coil 异步加载
+- **缩略图展示** — 视频帧/音频封面自动生成与异步加载
 - **播放进度保存** — 自动记录播放位置，再次打开自动续播
 - **搜索与筛选** — 按文件名搜索，按类型（全部/视频/音频）筛选
 - **深色模式** — 支持亮色/暗色主题自动切换
-- **横屏全屏播放** — 进入播放页自动横屏沉浸式，支持手动切换
+- **播放速度调节** — 0.5x ~ 2.0x 循环切换，速度偏好持久化
+- **播放队列** — 选择多个媒体项加入队列，自动连播
+- **媒体分组** — 按文件夹名分组显示，可折叠展开
+- **设备收藏** — 星标收藏常用设备，支持自定义别名
+- **投屏控制** — 将本机播放内容推送到指定设备继续播放，支持断点续播
 - **网络状态感知** — 播放页网络断开提示，设备离线自动切回本地
+
+### Web 端专属
+- **13 个功能页面** — 媒体库/设备列表/收藏设备/播放队列/播放历史/文件管理/统计面板/网络诊断/快捷键/多语言/数据导出/设置/关于
+- **4 语言国际化** — zh-CN / en / ja / ko，130+ 翻译键
+- **运行环境检测** — 自动识别 PC/手机/平板，PC 端支持本地扫描路径管理
+- **移动端 APP 引导** — 移动端访问时提示安装原生 APP，支持深链接跳转
+
+### Android 端专属
+- **MediaStore 媒体扫描** — 自动扫描设备中的视频和音频文件（API 33+ 适配）
+- **ExoPlayer 播放** — 基于 Media3 ExoPlayer，支持 HTTP 流播放
 - **前台 Service** — HTTP 服务绑定前台 Service，后台运行不被系统回收
-- **零依赖服务端** — core-server 模块纯 Kotlin/JVM，无第三方 HTTP 库
-- **播放队列 / 连续播放** — 选择多个媒体项加入队列，自动连播，队列指示器（第 X/Y 项）
-- **媒体分组浏览** — 按文件夹名分组显示，一键切换分组/扁平视图
-- **设备别名与收藏** — 自定义别名（如"客厅电视"），星标收藏常用设备，收藏设备优先显示
-- **跨设备投屏控制** — 将本机播放内容推送到指定设备继续播放，支持断点续播
-- **播放速度调节** — 0.5x / 0.75x / 1.0x / 1.25x / 1.5x / 2.0x 循环切换，长按快速重置
-- **分组可折叠** — 点击分组 Header 展开/折叠文件夹，显示媒体数量统计
-- **队列管理面板** — 底部弹窗查看完整队列，支持点击跳转、移除队列项
-- **设备选择器** — 播放页投屏按钮弹出设备列表，选择目标设备投屏，显示投屏状态反馈
-- **收藏设备自动重连** — 启动时直连收藏设备 IP:Port，减少 mDNS 等待时间
-- **速度偏好持久化** — 播放速度自动保存，下次打开自动应用
+- **平板双栏布局** — 大屏设备左侧列表+右侧播放器
+
+### iOS 端专属
+- **PHPhotoLibrary 媒体扫描** — 本地视频/音频扫描
+- **AVPlayer 播放** — 原生播放器 + AirPlay 投屏
+- **SwiftUI 界面** — 现代化声明式 UI
+
+### 鸿蒙端专属
+- **MediaKit 媒体扫描** — PhotoAccessHelper 本地媒体访问
+- **AVPlayer 播放** — 原生播放器 + Cast 投屏
+- **ArkTS 声明式 UI** — ArkUI 组件化界面
 
 ## 技术栈
 
-| 组件 | 版本 |
-|------|------|
-| Kotlin | 1.9.24 |
-| AGP | 8.13.0 |
-| Gradle | 8.7 (wrapper) |
-| AndroidX Media3 (ExoPlayer) | 1.4.1 |
-| Coil | 2.7.0 |
-| Material Design | 1.12.0 |
-| minSdk | 26 |
-| targetSdk / compileSdk | 35 |
+| 模块 | 技术 | 版本 |
+|------|------|------|
+| core-server | Kotlin/JVM | 1.9.24 |
+| Android | AGP + ExoPlayer + Coil | 8.13.0 / 1.4.1 / 2.7.0 |
+| Web | HTML5 + CSS3 + Vanilla JS | - |
+| iOS | Swift + SwiftUI | iOS 16.0+ |
+| HarmonyOS | ArkTS + ArkUI | HarmonyOS 4.0+ |
 
 ## 项目结构
 
 ```
-├── app/                         Android 应用模块
-│   └── src/main/kotlin/com/hmv/app/
-│       ├── MainActivity.kt      主界面：权限申请 + 设备列表 + 搜索筛选 + 分组切换 + 收藏设备重连
-│       ├── PlayerActivity.kt    ExoPlayer 播放页（队列/全屏/进度保存/网络检测/投屏接收/变速/速度持久化）
-│       ├── MediaServerService.kt 前台 Service，承载 HTTP 服务器 + 投屏指令广播
-│       ├── MediaScanner.kt      MediaStore 扫描视频/音频（含 folderName 提取）
-│       ├── NsdHelper.kt         mDNS 注册与发现
-│       ├── DeviceAdapter.kt     设备列表适配器（收藏星标 + 别名显示）
-│       ├── MediaAdapter.kt      媒体列表适配器（分组 Header + 可折叠 + 缩略图 + 搜索过滤 + DiffUtil）
-│       ├── DeviceFavoritesManager.kt 设备收藏与别名持久化（SharedPreferences + JSON + IP:Port 更新）
-│       ├── QueueAdapter.kt      播放队列适配器（跳转 + 移除）
-│       ├── DeviceCastAdapter.kt 投屏设备选择器适配器
-│       ├── ContentMediaRepository.kt  content:// URI → RangeReadable 桥接
-│       ├── RemoteMediaClient.kt 远程设备媒体列表拉取 + 投屏指令发送
-│       ├── PlayProgressManager.kt 播放进度持久化
-│       ├── PlaybackSpeedManager.kt 播放速度偏好持久化
-│       └── NetworkMonitor.kt    网络状态监听
-├── core-server/                 纯 Kotlin/JVM 模块（零 Android 依赖）
+├── core-server/                 共享核心模块（纯 Kotlin/JVM，零依赖）
 │   └── src/main/kotlin/com/hmv/server/
-│       ├── HttpRangeServer.kt   核心：ServerSocket HTTP+Range 服务 + POST /play
-│       ├── MediaRepository.kt   媒体数据源抽象 + MediaItem 模型（含 folderName）
+│       ├── HttpRangeServer.kt   HTTP+Range 服务 + 文件管理 + 扫描路径 API
+│       ├── MediaRepository.kt   媒体数据源抽象 + MediaItem 模型
 │       ├── FileMediaRepository.kt 文件系统实现
 │       ├── RangeParser.kt       HTTP Range 头解析
 │       └── RangeReadable.kt     可 seek 只读源接口
-├── anaDocs/                     方案设计文档
+├── app/                         Android Phone 端
+│   └── src/main/kotlin/com/hmv/app/
+│       ├── MainActivity.kt      主界面（单栏/双栏自适应）
+│       ├── PlayerActivity.kt    ExoPlayer 播放页
+│       ├── MediaServerService.kt 前台 Service
+│       └── ...                  其他组件
+├── pad/                         Android PAD 端（双栏布局）
+├── web-client/                  Web 端（13 页面 + 4 语言）
+│   ├── js/
+│   │   ├── app.js               主应用模块
+│   │   ├── api.js               API 封装
+│   │   ├── device.js            设备连接与发现
+│   │   ├── player.js            播放器控制
+│   │   ├── environment.js       运行环境检测
+│   │   ├── mobile-app.js        移动端 APP 检测
+│   │   └── ...                  其他模块
+│   └── index.html               主页面
+├── harmony-client/              鸿蒙端（ArkTS）
+│   └── entry/src/main/ets/
+│       ├── pages/               页面组件
+│       └── common/              工具类
+├── ios-client/                  iOS 端（SwiftUI）
+│   └── HomeMediaViewer/
+│       ├── Views/               视图组件
+│       ├── ViewModels/          视图模型
+│       └── Services/            服务层
+├── MULTI_PLATFORM_COMPARISON.md 多平台功能对比
 └── prjTracker/                  项目状态记录
 ```
 
 ## 构建与运行
 
+### Android
 ```bash
 ./gradlew :core-server:test      # 运行服务端单测（22 项）
 ./gradlew :app:assembleDebug     # 构建调试 APK
 ./gradlew :app:assembleRelease   # 构建 Release APK（含 R8 混淆）
 ```
 
-APK 产物：`app/build/outputs/apk/debug/app-debug.apk`
+### iOS
+```bash
+cd ios-client
+xcodegen generate                # 生成 Xcode 项目
+open HomeMediaViewer.xcodeproj   # 打开 Xcode
+```
+
+### HarmonyOS
+```bash
+# 使用 DevEco Studio 打开 harmony-client 目录
+# 编译运行需要 DevEco Studio 5.0+
+```
+
+### Web
+```bash
+# 直接用浏览器打开 web-client/index.html
+# 或使用任何静态文件服务器
+```
 
 ## HTTP API
 
-| 端点 | 说明 |
-|------|------|
-| `GET /media` | 返回 JSON 媒体列表 |
-| `GET /media/{id}` | 返回整文件字节流（200） |
-| `GET /media/{id}` + `Range: bytes=100-199` | 206 Partial Content |
-| `GET /media/{id}/thumbnail` | 返回缩略图（JPEG/PNG） |
-| `POST /play` | 投屏控制，JSON body：`{"mediaId":"...","title":"...","position":0}` |
-
-支持 `bytes=start-`（开区间）、`bytes=-N`（后缀）、越界返回 416、HEAD 请求。
+| 端点 | 方法 | 说明 |
+|------|------|------|
+| `/media` | GET | 返回 JSON 媒体列表 |
+| `/media/{id}` | GET | 返回整文件字节流（200） |
+| `/media/{id}` + Range | GET | 206 Partial Content |
+| `/media/{id}/thumbnail` | GET | 返回缩略图（JPEG/PNG） |
+| `/play` | POST | 投屏控制指令 |
+| `/upload` | POST | multipart 文件上传 |
+| `/media/{id}` | DELETE | 删除文件 |
+| `/media/{id}/rename` | POST | 重命名文件 |
+| `/folder` | POST | 新建文件夹 |
+| `/scanpaths` | GET | 获取扫描路径列表 |
+| `/scanpaths` | POST | 添加扫描路径 |
+| `/scanpaths/{path}` | DELETE | 移除扫描路径 |
+| `/scanpaths/rescan` | POST | 重新扫描所有路径 |
 
 ## 工作原理
 
 ```
-设备 A                              设备 B
-┌─────────────────────┐    LAN    ┌─────────────────────┐
-│  MediaServerService │◄─────────│  NsdHelper 发现      │
-│  HTTP+Range Server  │          │  设备选择器 → 投屏    │
-│  mDNS 注册          │  /media  │  ExoPlayer 流式播放   │
-│  POST /play         │  /play   │  队列管理 / 分组浏览   │
-└─────────────────────┘          └─────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                        局域网 (LAN)                         │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌─────────────┐    mDNS 发现    ┌─────────────┐          │
+│  │  Android    │◄───────────────►│  iOS        │          │
+│  │  Phone/Pad  │                 │  iPhone     │          │
+│  └──────┬──────┘                 └──────┬──────┘          │
+│         │                               │                  │
+│         │    HTTP API                   │                  │
+│         ▼                               ▼                  │
+│  ┌─────────────────────────────────────────────┐          │
+│  │              core-server HTTP API            │          │
+│  │  /media  /play  /upload  /scanpaths  ...    │          │
+│  └─────────────────────────────────────────────┘          │
+│         ▲                               ▲                  │
+│         │                               │                  │
+│  ┌──────┴──────┐                 ┌──────┴──────┐          │
+│  │  Web        │                 │  HarmonyOS  │          │
+│  │  (PC/移动)  │                 │  手机/平板   │          │
+│  └─────────────┘                 └─────────────┘          │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 1. 每台设备启动后扫描本地媒体，开启 HTTP 服务并注册 mDNS
 2. 设备间通过 mDNS 自动发现彼此，收藏设备直连加速
 3. 点击远程设备 → 拉取 `/media` JSON 列表，支持分组浏览
-4. 点击媒体项 → ExoPlayer 播放远程 URL，支持队列播放、拖动（Range 206）
+4. 点击媒体项 → 播放远程 URL，支持队列播放、拖动（Range 206）
 5. 投屏 → 点击投屏按钮 → 选择目标设备 → `POST /play` 发送播放指令
 
 ## 权限说明
 
+### Android
 | 权限 | 用途 |
 |------|------|
 | `INTERNET` | HTTP 服务端与客户端通信 |
@@ -121,6 +181,18 @@ APK 产物：`app/build/outputs/apk/debug/app-debug.apk`
 | `READ_MEDIA_VIDEO` / `READ_MEDIA_AUDIO` | API 33+ 媒体文件读取 |
 | `READ_EXTERNAL_STORAGE` | API ≤ 32 媒体文件读取 |
 | `FOREGROUND_SERVICE` | HTTP 服务后台常驻 |
+
+### iOS
+| 权限 | 用途 |
+|------|------|
+| `NSPhotoLibraryUsageDescription` | 访问相册媒体文件 |
+| `NSLocalNetworkUsageDescription` | 局域网通信 |
+
+### HarmonyOS
+| 权限 | 用途 |
+|------|------|
+| `ohos.permission.READ_MEDIA` | 读取媒体文件 |
+| `ohos.permission.INTERNET` | 网络通信 |
 
 ## 安全特性
 
@@ -133,6 +205,8 @@ APK 产物：`app/build/outputs/apk/debug/app-debug.apk`
 
 - OpenJDK 17+
 - Android SDK（compileSdk 35）
+- Xcode 15+（iOS 开发）
+- DevEco Studio 5.0+（鸿蒙开发）
 - 首次构建需联网下载依赖
 
 ## 路线图
@@ -141,16 +215,16 @@ APK 产物：`app/build/outputs/apk/debug/app-debug.apk`
 - [x] M2 ExoPlayer 播放端
 - [x] M3 mDNS 设备发现
 - [x] M4 跨设备播放
-- [x] 前台 Service + 签名配置
-- [x] M5 缩略图 / 播放进度保存 / 搜索筛选 / 深色模式 / 全屏播放 / 网络感知
-- [x] R8 混淆优化
-- [x] V2-1 播放队列 / 连续播放
-- [x] V2-2 媒体分组浏览
-- [x] V2-3 设备别名与收藏
-- [x] V2-4 跨设备投屏控制
-- [x] V2-5 播放速度调节
-- [x] V2 优化：分组可折叠 + 队列管理面板 + 设备选择器 + 收藏自动重连 + 速度持久化
+- [x] M5 缩略图 / 播放进度 / 搜索筛选 / 深色模式 / 全屏播放 / 网络感知
+- [x] V2 播放队列 / 媒体分组 / 设备收藏 / 投屏控制 / 播放速度
+- [x] V3 Web 客户端（13 页面 + 4 语言）
+- [x] V3 PAD 客户端（双栏布局）
+- [x] V3 iOS 客户端（SwiftUI）
+- [x] V3 HarmonyOS 客户端（ArkTS）
+- [x] Web 端运行环境检测 + 扫描路径管理
+- [x] 移动端 APP 检测与深链接
 - [ ] CI/CD 自动构建
+- [ ] 鸿蒙 APP 编译验证（需 DevEco Studio）
 
 ## License
 
