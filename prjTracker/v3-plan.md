@@ -5,6 +5,54 @@
 
 ---
 
+## 0. 设计原则：端侧代码完全独立
+
+**核心原则：三个端的代码相互独立，一端修改不影响另一端。**
+
+### 0.1 隔离策略
+
+```
+HomeMediaViewer-ext/
+├── core-server/          ← 共享层（唯一共享代码）
+├── app/                  ← Phone 端（独立模块）
+├── app-tablet/           ← PAD 端（独立模块）
+├── web-client/           ← PC 端（独立目录）
+└── build.gradle.kts      ← 根构建（不耦合具体端）
+```
+
+| 层级 | 归属 | 依赖关系 |
+|------|------|----------|
+| `core-server` | 共享 | 零外部依赖，纯 Kotlin/JVM |
+| `app` | Phone 端 | 依赖 `core-server`，不依赖 `app-tablet` |
+| `app-tablet` | PAD 端 | 依赖 `core-server`，不依赖 `app` |
+| `web-client` | PC 端 | 无 Kotlin 依赖，仅 HTTP API 通信 |
+
+### 0.2 独立性保证
+
+| 规则 | 说明 |
+|------|------|
+| 模块隔离 | 每个端是独立的 Gradle 模块（Android）或独立目录（Web） |
+| 无交叉依赖 | Phone 端不 import PAD 端的类，反之亦然 |
+| 共享代码只增不改 | core-server 只能新增功能，不能修改现有 API 签名 |
+| 各端独立构建 | `./gradlew :app:assembleDebug` 不触发 `app-tablet` 构建 |
+| 各端独立仓库（可选） | 后期可拆分为独立 Git 仓库，通过 HTTP API 解耦 |
+
+### 0.3 共享代码边界
+
+**可以共享（core-server 内）：**
+- HttpRangeServer（HTTP 服务）
+- MediaRepository（媒体数据源）
+- RangeParser（Range 解析）
+- RangeReadable（seek 接口）
+
+**不可以共享（各端独立实现）：**
+- UI 布局（Activity/Fragment/HTML）
+- 适配器（Adapter/ViewHolder）
+- 状态管理（ViewModel/State）
+- 平台特定逻辑（Android NSD/WebSocket）
+
+---
+
 ## 1. 架构总览
 
 ```
@@ -32,7 +80,8 @@
 | 项 | 说明 |
 |----|------|
 | 平台 | Android (当前实现) |
-| 代码位置 | `app/` 模块 |
+| 代码位置 | `app/` 模块（独立） |
+| 依赖 | 仅依赖 `core-server` |
 | UI 特征 | 单栏布局，底部导航 |
 | 目标设备 | 手机（5-7 英寸） |
 | 版本 | v0.2 已完成 |
@@ -43,22 +92,36 @@
 | 项 | 说明 |
 |----|------|
 | 平台 | Android (Tablet) |
-| 代码位置 | `app-tablet/` 模块 |
+| 代码位置 | `app-tablet/` 模块（独立） |
+| 依赖 | 仅依赖 `core-server`，不依赖 `app` |
 | UI 特征 | 双栏布局，左侧设备列表 + 右侧媒体内容 |
 | 目标设备 | 平板（8-13 英寸） |
 | 版本 | v0.3 |
 | 状态 | ⏳ 规划中 |
+
+**独立性说明：**
+- `app-tablet` 是独立的 Android 模块，有自己的 `build.gradle.kts`
+- 可以独立构建、独立安装、独立发布
+- 修改 `app` 模块不会影响 `app-tablet`，反之亦然
+- 两者共享 `core-server` 的 HTTP API，但 UI 层完全独立
 
 ### 2.3 PC 端（桌面浏览器）
 
 | 项 | 说明 |
 |----|------|
 | 平台 | Web (HTML/CSS/JS) |
-| 代码位置 | `web-client/` 目录 |
+| 代码位置 | `web-client/` 目录（独立） |
+| 依赖 | 无 Kotlin 依赖，仅 HTTP API |
 | UI 特征 | 响应式布局，桌面浏览器优化 |
 | 目标设备 | PC 浏览器（Chrome/Edge/Firefox） |
 | 版本 | v0.3 |
 | 状态 | ⏳ 规划中 |
+
+**独立性说明：**
+- `web-client` 是纯前端项目，无 Kotlin/Android 依赖
+- 通过 HTTP API（Fetch）与任意设备通信
+- 可以直接用浏览器打开 `index.html` 运行
+- 修改 Android 端代码不会影响 PC 端
 
 ---
 
@@ -75,8 +138,27 @@ core-server/
 └── RangeReadable.kt        可 seek 接口
 ```
 
-**Phone/PAD 端**：通过 Gradle 依赖 `implementation(project(":core-server"))` 直接使用。
-**PC 端**：通过 HTTP API 调用，无需 Kotlin 运行时。
+### 3.1 共享边界
+
+| 共享内容 | 说明 |
+|----------|------|
+| HTTP API | 所有端通过 HTTP 协议通信 |
+| 数据格式 | JSON 媒体列表、Range 请求 |
+| 端点定义 | `/media`, `/media/{id}`, `/play` |
+
+| 不共享内容 | 说明 |
+|------------|------|
+| UI 实现 | 各端独立实现 |
+| 状态管理 | 各端独立管理 |
+| 平台逻辑 | Android NSD / Web WebSocket |
+
+### 3.2 依赖方式
+
+| 端 | 依赖方式 |
+|----|----------|
+| Phone 端 | `implementation(project(":core-server"))` |
+| PAD 端 | `implementation(project(":core-server"))` |
+| PC 端 | HTTP API（Fetch），无代码依赖 |
 
 ---
 
@@ -245,6 +327,36 @@ HomeMediaViewer-ext/
 ├── prjTracker/
 └── build.gradle.kts
 ```
+
+---
+
+## 8. 独立构建与部署
+
+### 8.1 构建命令
+
+| 端 | 构建命令 | 产物 |
+|----|----------|------|
+| Phone | `./gradlew :app:assembleDebug` | `app-debug.apk` |
+| PAD | `./gradlew :app-tablet:assembleDebug` | `app-tablet-debug.apk` |
+| PC | 直接打开 `web-client/index.html` | 浏览器访问 |
+| 共享服务端 | `./gradlew :core-server:build` | JAR 包 |
+
+### 8.2 独立发布
+
+| 端 | 发布方式 |
+|----|----------|
+| Phone | Google Play / APK 直装 |
+| PAD | Google Play / APK 直装 |
+| PC | 部署到任意 Web 服务器 / 本地打开 |
+
+### 8.3 独立测试
+
+| 端 | 测试命令 |
+|----|----------|
+| Phone | `./gradlew :app:test` |
+| PAD | `./gradlew :app-tablet:test` |
+| PC | 浏览器手动测试 |
+| 共享服务端 | `./gradlew :core-server:test` |
 
 ---
 
