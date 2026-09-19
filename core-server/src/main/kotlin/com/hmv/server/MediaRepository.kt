@@ -15,7 +15,8 @@ data class MediaItem(
     val mimeType: String,
     val size: Long,
     val relativePath: String,
-    val thumbnailUri: String? = null
+    val thumbnailUri: String? = null,
+    val folderName: String = ""
 ) : java.io.Serializable
 
 /**

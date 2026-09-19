@@ -21,9 +21,21 @@ class MediaScanner(private val context: Context) {
 
         val (uri, projection) = when (collection) {
             CollectionKind.VIDEO -> MediaStore.Video.Media.EXTERNAL_CONTENT_URI to
-                arrayOf(MediaStore.Video.Media._ID, MediaStore.Video.Media.DISPLAY_NAME, MediaStore.Video.Media.SIZE, MediaStore.Video.Media.MIME_TYPE)
+                arrayOf(
+                    MediaStore.Video.Media._ID,
+                    MediaStore.Video.Media.DISPLAY_NAME,
+                    MediaStore.Video.Media.SIZE,
+                    MediaStore.Video.Media.MIME_TYPE,
+                    MediaStore.Video.Media.DATA
+                )
             CollectionKind.AUDIO -> MediaStore.Audio.Media.EXTERNAL_CONTENT_URI to
-                arrayOf(MediaStore.Audio.Media._ID, MediaStore.Audio.Media.DISPLAY_NAME, MediaStore.Audio.Media.SIZE, MediaStore.Audio.Media.MIME_TYPE)
+                arrayOf(
+                    MediaStore.Audio.Media._ID,
+                    MediaStore.Audio.Media.DISPLAY_NAME,
+                    MediaStore.Audio.Media.SIZE,
+                    MediaStore.Audio.Media.MIME_TYPE,
+                    MediaStore.Audio.Media.DATA
+                )
         }
 
         resolver.query(uri, projection, null, null, null)?.use { cursor ->
@@ -31,12 +43,15 @@ class MediaScanner(private val context: Context) {
             val nameCol = cursor.getColumnIndexOrThrow(projection[1])
             val sizeCol = cursor.getColumnIndexOrThrow(projection[2])
             val mimeCol = cursor.getColumnIndexOrThrow(projection[3])
+            val dataCol = cursor.getColumnIndexOrThrow(projection[4])
             while (cursor.moveToNext()) {
                 val id = cursor.getLong(idCol)
                 val name = cursor.getString(nameCol) ?: continue
                 val size = cursor.getLong(sizeCol)
                 if (size <= 0L) continue
                 val mime = cursor.getString(mimeCol) ?: mimeFromName(name)
+                val dataPath = cursor.getString(dataCol) ?: ""
+                val folderName = extractFolderName(dataPath)
                 val mediaUri: Uri = if (collection == CollectionKind.VIDEO)
                     ContentUris.withAppendedId(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, id)
                 else
@@ -48,11 +63,18 @@ class MediaScanner(private val context: Context) {
                     mimeType = mime,
                     size = size,
                     relativePath = mediaUri.toString(),
-                    thumbnailUri = thumbnailUri
+                    thumbnailUri = thumbnailUri,
+                    folderName = folderName
                 )
             }
         }
         return result
+    }
+
+    private fun extractFolderName(dataPath: String): String {
+        if (dataPath.isEmpty()) return ""
+        val file = java.io.File(dataPath)
+        return file.parentFile?.name ?: ""
     }
 
     private fun buildThumbnailUri(collection: CollectionKind, dbId: Long): String? {

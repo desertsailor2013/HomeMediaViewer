@@ -36,6 +36,7 @@ class MainActivity : AppCompatActivity() {
     private val filterVideo by lazy { findViewById<TextView>(R.id.filter_video) }
     private val filterAudio by lazy { findViewById<TextView>(R.id.filter_audio) }
     private val playAllBtn by lazy { findViewById<TextView>(R.id.btn_play_all) }
+    private val groupToggleBtn by lazy { findViewById<TextView>(R.id.btn_group_toggle) }
     private val mediaAdapter = MediaAdapter { onMediaClicked(it) }
     private val deviceAdapter = DeviceAdapter { onDeviceClicked(it) }
 
@@ -73,6 +74,7 @@ class MainActivity : AppCompatActivity() {
 
         setupSearchAndFilter()
         setupPlayAllButton()
+        setupGroupToggle()
         setupNetworkMonitor()
         requestMediaPermissions()
     }
@@ -141,6 +143,27 @@ class MainActivity : AppCompatActivity() {
 
         if (urls.isNotEmpty()) {
             startActivity(PlayerActivity.createIntent(this, urls, titles, ids, startIndex))
+        }
+    }
+
+    private fun setupGroupToggle() {
+        updateGroupToggleUI()
+        groupToggleBtn.setOnClickListener {
+            mediaAdapter.setGroupByFolder(!mediaAdapter.isGroupByFolder())
+            updateGroupToggleUI()
+            updateEmptyHint()
+        }
+    }
+
+    private fun updateGroupToggleUI() {
+        val selectedColor = ContextCompat.getColor(this, R.color.filter_selected)
+        val unselectedColor = ContextCompat.getColor(this, R.color.filter_unselected)
+        if (mediaAdapter.isGroupByFolder()) {
+            groupToggleBtn.text = getString(R.string.flat_view)
+            groupToggleBtn.setTextColor(selectedColor)
+        } else {
+            groupToggleBtn.text = getString(R.string.group_by_folder)
+            groupToggleBtn.setTextColor(unselectedColor)
         }
     }
 

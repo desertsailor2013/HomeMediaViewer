@@ -111,6 +111,19 @@
             android:textSize="13sp" />
     </LinearLayout>
 
+    <TextView
+        android:id="@+id/btn_group_toggle"
+        android:layout_width="wrap_content"
+        android:layout_height="32dp"
+        android:layout_gravity="end"
+        android:layout_marginBottom="8dp"
+        android:background="?android:attr/selectableItemBackground"
+        android:gravity="center"
+        android:paddingHorizontal="12dp"
+        android:text="@string/group_by_folder"
+        android:textColor="@color/filter_unselected"
+        android:textSize="12sp" />
+
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
