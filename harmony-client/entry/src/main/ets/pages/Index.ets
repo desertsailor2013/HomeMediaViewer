@@ -1,8 +1,9 @@
 import { router } from '@kit.ArkUI';
-import { media } from '@kit.MediaKit';
 import { RemoteMediaClient } from '../common/RemoteMediaClient';
 import { FavoritesManager } from '../common/FavoritesManager';
-import { MediaItem, DiscoveredDevice, QueueItem } from '../model/MediaModels';
+import { MediaScanner } from '../common/MediaScanner';
+import { NsdHelper, DeviceListener } from '../common/NsdHelper';
+import { MediaItem, DiscoveredDevice } from '../model/MediaModels';
 
 @Entry
 @Component
@@ -12,37 +13,73 @@ struct Index {
   @State status: string = '正在扫描媒体...';
   @State searchQuery: string = '';
   @State currentDevice: DiscoveredDevice | null = null;
-  @State isPlaying: boolean = false;
-  @State currentTitle: string = '';
-  @State queue: QueueItem[] = [];
-  @State queueIndex: number = -1;
+  @State isGroupByFolder: boolean = false;
+  @State typeFilter: string = 'all';
 
   private remoteClient: RemoteMediaClient = new RemoteMediaClient();
   private favoritesManager: FavoritesManager = new FavoritesManager(this.getUIContext().getHostContext());
-  private avPlayer: media.AVPlayer | null = null;
+  private scanner: MediaScanner = new MediaScanner(this.getUIContext().getHostContext());
+  private nsdHelper: NsdHelper = new NsdHelper(this.getUIContext().getHostContext());
 
   aboutToAppear(): void {
-    this.loadLocalMedia();
     this.favoritesManager.loadFavorites();
+    this.startServerAsync();
+    this.startDeviceDiscovery();
   }
 
   aboutToDisappear(): void {
-    this.releasePlayer();
+    this.nsdHelper.stopDiscovery();
   }
 
-  /**
-   * 加载本地媒体
-   */
-  private loadLocalMedia(): void {
+  private async startServerAsync(): Promise<void> {
     this.status = '正在扫描媒体...';
-    // 使用 MediaKit 扫描本地媒体
-    // TODO: 实现 MediaKit 扫描
-    this.status = '本地媒体加载完成';
+    let items = await this.scanner.scanAll();
+    this.mediaItems = items;
+    this.status = `本机媒体 - ${items.length} 个文件`;
   }
 
-  /**
-   * 连接远程设备
-   */
+  private startDeviceDiscovery(): void {
+    this.tryConnectFavorites();
+
+    this.nsdHelper.startDiscovery({
+      onDeviceFound: (device: DiscoveredDevice) => {
+        let exists = this.devices.some((d: DiscoveredDevice) => d.name === device.name);
+        if (!exists) {
+          this.devices.push(device);
+        }
+      },
+      onDeviceLost: (device: DiscoveredDevice) => {
+        let index = this.devices.findIndex((d: DiscoveredDevice) => d.name === device.name);
+        if (index >= 0) {
+          this.devices.splice(index, 1);
+        }
+        if (this.currentDevice && this.currentDevice.name === device.name) {
+          this.currentDevice = null;
+          this.startServerAsync();
+        }
+      },
+      onDiscoveryFailed: (errorCode: number) => {
+        this.status = `设备发现失败: ${errorCode}`;
+      }
+    } as DeviceListener);
+  }
+
+  private tryConnectFavorites(): void {
+    let favorites = this.favoritesManager.getFavorites();
+    if (favorites.length === 0) return;
+
+    for (let fav of favorites) {
+      this.remoteClient.checkDeviceOnline(fav.address).then((online: boolean) => {
+        if (online) {
+          let exists = this.devices.some((d: DiscoveredDevice) => d.name === fav.name);
+          if (!exists) {
+            this.devices.push(fav);
+          }
+        }
+      });
+    }
+  }
+
   private async connectDevice(device: DiscoveredDevice): Promise<void> {
     this.currentDevice = device;
     this.status = `正在获取 ${device.name} 的媒体列表...`;
@@ -51,94 +88,63 @@ struct Index {
     this.status = `${device.name} - ${items.length} 个媒体文件`;
   }
 
-  /**
-   * 播放媒体
-   */
-  private async playMedia(item: MediaItem): Promise<void> {
-    let url: string;
-    if (this.currentDevice) {
-      url = this.remoteClient.getMediaUrl(this.currentDevice.address, item.id);
-    } else {
-      // TODO: 本地播放
-      url = '';
+  private getFilteredItems(): MediaItem[] {
+    let items = this.mediaItems;
+
+    if (this.searchQuery) {
+      let query = this.searchQuery.toLowerCase();
+      items = items.filter((item: MediaItem) =>
+        item.title.toLowerCase().includes(query) ||
+        item.folderName.toLowerCase().includes(query)
+      );
     }
 
-    if (url) {
-      this.currentTitle = item.title;
-      this.isPlaying = true;
-      await this.startPlayback(url);
+    if (this.typeFilter === 'video') {
+      items = items.filter((item: MediaItem) => item.mimeType.includes('video'));
+    } else if (this.typeFilter === 'audio') {
+      items = items.filter((item: MediaItem) => item.mimeType.includes('audio'));
     }
+
+    return items;
   }
 
-  /**
-   * 开始播放
-   */
-  private async startPlayback(url: string): Promise<void> {
-    try {
-      this.avPlayer = await media.createAVPlayer();
-      let avPlayer = this.avPlayer as media.AVPlayer;
+  private playMedia(item: MediaItem): void {
+    let items = this.getFilteredItems();
+    let index = items.findIndex((i: MediaItem) => i.id === item.id);
+    if (index < 0) index = 0;
 
-      avPlayer.on('stateChange', (state: string) => {
-        if (state === 'initialized') {
-          avPlayer.play();
-        } else if (state === 'completed') {
-          this.playNext();
-        }
-      });
+    let urls: string[] = [];
+    let titles: string[] = [];
+    let mediaIds: string[] = [];
 
-      avPlayer.on('error', (err: BusinessError) => {
-        console.error('Playback error:', err.message);
-        this.isPlaying = false;
-      });
-
-      await avPlayer.url = url;
-    } catch (err) {
-      console.error('Failed to start playback:', err);
-      this.isPlaying = false;
+    for (let i of items) {
+      let url: string;
+      if (this.currentDevice) {
+        url = this.remoteClient.getMediaUrl(this.currentDevice.address, i.id);
+      } else {
+        url = `file://${i.relativePath}`;
+      }
+      urls.push(url);
+      titles.push(i.title);
+      mediaIds.push(i.id);
     }
+
+    router.pushUrl({
+      url: 'pages/Player',
+      params: {
+        urls: urls,
+        titles: titles,
+        mediaIds: mediaIds,
+        startIndex: index,
+        deviceAddress: this.currentDevice ? this.currentDevice.address : ''
+      }
+    });
   }
 
-  /**
-   * 播放下一个
-   */
-  private playNext(): void {
-    if (this.queue.length > 0 && this.queueIndex < this.queue.length - 1) {
-      this.queueIndex++;
-      let item = this.queue[this.queueIndex];
-      this.currentTitle = item.title;
-      this.startPlayback(item.url);
-    } else {
-      this.isPlaying = false;
-    }
-  }
-
-  /**
-   * 停止播放
-   */
-  private stopPlayback(): void {
-    if (this.avPlayer) {
-      this.avPlayer.stop();
-      this.avPlayer.release();
-      this.avPlayer = null;
-    }
-    this.isPlaying = false;
-  }
-
-  /**
-   * 释放播放器
-   */
-  private releasePlayer(): void {
-    if (this.avPlayer) {
-      this.avPlayer.release();
-      this.avPlayer = null;
-    }
-  }
-
-  /**
-   * 检查设备是否在线
-   */
-  private async checkDeviceOnline(device: DiscoveredDevice): Promise<boolean> {
-    return await this.remoteClient.checkDeviceOnline(device.address);
+  private playAll(): void {
+    let items = this.getFilteredItems();
+    if (items.length === 0) return;
+    this.playMedia(items[0]);
   }
 
   build() {
@@ -200,7 +206,7 @@ struct Index {
         .height(120)
       }
 
-      // 本机媒体标题
+      // 媒体标题
       Row() {
         Text(this.currentDevice ? this.currentDevice.name : '本机媒体')
           .fontSize(16)
@@ -218,12 +224,50 @@ struct Index {
           this.searchQuery = value;
         })
 
+      // 筛选按钮
+      Row() {
+        Text('全部')
+          .fontSize(this.typeFilter === 'all' ? 15 : 13)
+          .fontColor(this.typeFilter === 'all' ? '#1E88E5' : '#888888')
+          .onClick(() => { this.typeFilter = 'all'; })
+
+        Text('视频')
+          .fontSize(this.typeFilter === 'video' ? 15 : 13)
+          .fontColor(this.typeFilter === 'video' ? '#1E88E5' : '#888888')
+          .margin({ left: 16 })
+          .onClick(() => { this.typeFilter = 'video'; })
+
+        Text('音频')
+          .fontSize(this.typeFilter === 'audio' ? 15 : 13)
+          .fontColor(this.typeFilter === 'audio' ? '#1E88E5' : '#888888')
+          .margin({ left: 16 })
+          .onClick(() => { this.typeFilter = 'audio'; })
+      }
+      .width('100%')
+      .height(32)
+      .padding({ left: 16 })
+      .margin({ bottom: 8 })
+
+      // 全部播放按钮
+      if (this.getFilteredItems().length > 0) {
+        Text('全部播放')
+          .width('90%')
+          .height(48)
+          .backgroundColor('#1E88E5')
+          .fontColor('#FFFFFF')
+          .fontSize(15)
+          .fontWeight(FontWeight.Bold)
+          .textAlign(TextAlign.Center)
+          .borderRadius(8)
+          .margin({ bottom: 8 })
+          .onClick(() => this.playAll())
+      }
+
       // 媒体列表
       List() {
-        ForEach(this.mediaItems, (item: MediaItem) => {
+        ForEach(this.getFilteredItems(), (item: MediaItem) => {
           ListItem() {
             Row() {
-              // 缩略图占位
               Column() {
                 Text(item.mimeType.includes('video') ? '🎬' : '🎵')
                   .fontSize(24)
@@ -234,7 +278,6 @@ struct Index {
               .justifyContent(FlexAlign.Center)
               .borderRadius(8)
 
-              // 媒体信息
               Column() {
                 Text(item.title)
                   .fontSize(16)
@@ -259,26 +302,6 @@ struct Index {
       }
       .width('100%')
       .layoutWeight(1)
-
-      // 播放控制栏
-      if (this.isPlaying) {
-        Row() {
-          Text(this.currentTitle)
-            .fontSize(14)
-            .fontColor('#212121')
-            .layoutWeight(1)
-            .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
-
-          Text('⏹')
-            .fontSize(24)
-            .onClick(() => this.stopPlayback())
-        }
-        .width('100%')
-        .height(56)
-        .padding({ left: 16, right: 16 })
-        .backgroundColor('#F5F5F5')
-      }
     }
     .width('100%')
     .height('100%')
