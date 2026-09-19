@@ -52,6 +52,8 @@ class PlayerActivity : AppCompatActivity() {
     private var isRemotePlayback = false
     private var networkMonitor: NetworkMonitor? = null
     private var isNetworkLost = false
+    private var discoveredDevices = mutableListOf<NsdHelper.DiscoveredDevice>()
+    private val remoteClient = RemoteMediaClient()
 
     private val speedOptions = floatArrayOf(0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f)
     private var currentSpeedIndex = 2 // 默认 1.0x
@@ -83,6 +85,13 @@ class PlayerActivity : AppCompatActivity() {
         speedBtn.setOnClickListener { cycleSpeed() }
         queueBtn.setOnClickListener { showQueuePanel() }
 
+        val castBtn = findViewById<ImageButton>(R.id.btn_cast)
+        castBtn.setOnClickListener { showDeviceSelector() }
+        // 如果没有发现设备，隐藏投屏按钮
+        if (discoveredDevices.isEmpty()) {
+            castBtn.visibility = View.GONE
+        }
+
         // 解析传入的媒体列表
         urls = intent.getStringArrayListExtra(EXTRA_URLS) ?: run {
             // 兼容旧的单文件启动方式
@@ -97,6 +106,23 @@ class PlayerActivity : AppCompatActivity() {
         startIndex = intent.getIntExtra(EXTRA_START_INDEX, 0)
 
         isRemotePlayback = urls.any { !it.startsWith("127.0.0.1") && !it.startsWith("localhost") }
+
+        // 解析设备列表
+        val deviceNames = intent.getStringArrayListExtra(EXTRA_DEVICE_NAMES)
+        val deviceHosts = intent.getStringArrayListExtra(EXTRA_DEVICE_HOSTS)
+        val devicePorts = intent.getIntegerArrayListExtra(EXTRA_DEVICE_PORTS)
+        if (deviceNames != null && deviceHosts != null && devicePorts != null) {
+            for (i in deviceNames.indices) {
+                discoveredDevices.add(
+                    NsdHelper.DiscoveredDevice(
+                        name = deviceNames[i],
+                        host = deviceHosts[i],
+                        port = devicePorts[i],
+                        serviceInfo = android.net.nsd.NsdServiceInfo()
+                    )
+                )
+            }
+        }
 
         // 恢复上次播放进度
         val currentMediaId = mediaIds.getOrElse(startIndex) { "" }
@@ -308,6 +334,59 @@ class PlayerActivity : AppCompatActivity() {
         Toast.makeText(this, getString(R.string.queue_item_remove), Toast.LENGTH_SHORT).show()
     }
 
+    private fun showDeviceSelector() {
+        if (discoveredDevices.isEmpty()) {
+            Toast.makeText(this, getString(R.string.cast_no_device), Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val panel = layoutInflater.inflate(R.layout.sheet_device_selector, null)
+        val dialog = com.google.android.material.bottomsheet.BottomSheetDialog(this)
+        dialog.setContentView(panel)
+
+        val deviceList = panel.findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.device_list)
+        val emptyView = panel.findViewById<TextView>(R.id.empty_hint)
+
+        val adapter = DeviceCastAdapter { device ->
+            dialog.dismiss()
+            castToDevice(device)
+        }
+
+        deviceList.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
+        deviceList.adapter = adapter
+        adapter.submit(discoveredDevices)
+
+        emptyView.visibility = if (discoveredDevices.isEmpty()) View.VISIBLE else View.GONE
+        deviceList.visibility = if (discoveredDevices.isEmpty()) View.GONE else View.VISIBLE
+
+        dialog.show()
+    }
+
+    private fun castToDevice(device: NsdHelper.DiscoveredDevice) {
+        val currentPosition = player?.currentPosition ?: 0L
+        val currentTitle = titles.getOrElse(player?.currentMediaItemIndex ?: 0) { "" }
+        val currentMediaId = mediaIds.getOrElse(player?.currentMediaItemIndex ?: 0) { "" }
+
+        val remoteDevice = RemoteMediaClient.RemoteDevice(device.name, device.host, device.port)
+        remoteClient.sendCastCommand(
+            device = remoteDevice,
+            mediaId = currentMediaId,
+            title = currentTitle,
+            position = currentPosition
+        ) { result ->
+            runOnUiThread {
+                result.fold(
+                    onSuccess = {
+                        Toast.makeText(this, getString(R.string.cast_success), Toast.LENGTH_SHORT).show()
+                    },
+                    onFailure = {
+                        Toast.makeText(this, getString(R.string.cast_failed), Toast.LENGTH_SHORT).show()
+                    }
+                )
+            }
+        }
+    }
+
     private fun startNetworkMonitor() {
         networkMonitor = NetworkMonitor(this)
         networkMonitor?.startListening(object : NetworkMonitor.NetworkListener {
@@ -428,6 +507,9 @@ class PlayerActivity : AppCompatActivity() {
         const val EXTRA_MEDIA_ID = "extra_media_id"
         const val EXTRA_MEDIA_IDS = "extra_media_ids"
         const val EXTRA_START_INDEX = "extra_start_index"
+        const val EXTRA_DEVICE_NAMES = "extra_device_names"
+        const val EXTRA_DEVICE_HOSTS = "extra_device_hosts"
+        const val EXTRA_DEVICE_PORTS = "extra_device_ports"
 
         /** 单文件启动（兼容旧版） */
         fun createIntent(context: Context, url: String, title: String, mediaId: String = ""): Intent =
@@ -449,5 +531,23 @@ class PlayerActivity : AppCompatActivity() {
                 .putStringArrayListExtra(EXTRA_TITLES, ArrayList(titles))
                 .putStringArrayListExtra(EXTRA_MEDIA_IDS, ArrayList(mediaIds))
                 .putExtra(EXTRA_START_INDEX, startIndex)
+
+        /** 播放队列启动（含设备列表） */
+        fun createIntent(
+            context: Context,
+            urls: List<String>,
+            titles: List<String>,
+            mediaIds: List<String>,
+            startIndex: Int,
+            devices: List<NsdHelper.DiscoveredDevice>
+        ): Intent =
+            Intent(context, PlayerActivity::class.java)
+                .putStringArrayListExtra(EXTRA_URLS, ArrayList(urls))
+                .putStringArrayListExtra(EXTRA_TITLES, ArrayList(titles))
+                .putStringArrayListExtra(EXTRA_MEDIA_IDS, ArrayList(mediaIds))
+                .putExtra(EXTRA_START_INDEX, startIndex)
+                .putStringArrayListExtra(EXTRA_DEVICE_NAMES, ArrayList(devices.map { it.name }))
+                .putStringArrayListExtra(EXTRA_DEVICE_HOSTS, ArrayList(devices.map { it.host }))
+                .putIntegerArrayListExtra(EXTRA_DEVICE_PORTS, ArrayList(devices.map { it.port }))
     }
 }

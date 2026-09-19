@@ -60,6 +60,18 @@
         android:padding="12dp"
         android:src="@drawable/ic_fullscreen_exit" />
 
+    <ImageButton
+        android:id="@+id/btn_cast"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="end|bottom"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="12dp"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/cast_select_device"
+        android:padding="12dp"
+        android:src="@drawable/ic_cast_device" />
+
     <ProgressBar
         android:id="@+id/loading"
         android:layout_width="wrap_content"
