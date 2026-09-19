@@ -1,0 +1,16 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "HomeMediaViewer HarmonyOS Client"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "HomeMediaViewer"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "HomeMediaViewer"
+    }
+  ]
+}
