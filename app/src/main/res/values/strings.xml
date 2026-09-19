@@ -42,4 +42,7 @@
     <string name="alias_saved">别名已保存</string>
     <string name="remove_favorite">取消收藏</string>
     <string name="favorite_removed">已取消收藏</string>
+    <string name="cast_playing">正在播放：%1$s</string>
+    <string name="cast_not_found">未找到媒体：%1$s</string>
+    <string name="cast_to">投屏到</string>
 </resources>

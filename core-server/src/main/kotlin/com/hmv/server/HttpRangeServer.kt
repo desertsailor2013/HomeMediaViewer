@@ -75,7 +75,8 @@ class HttpRangeServer(
     private data class HttpRequest(
         val method: String,
         val path: String,
-        val headers: Map<String, String>
+        val headers: Map<String, String>,
+        val body: String = ""
     )
 
     private fun handleClient(socket: Socket) {
@@ -86,7 +87,8 @@ class HttpRangeServer(
                 val out = it.getOutputStream()
                 when {
                     request == null -> writeStatus(out, STATUS_BAD_REQUEST)
-                    request.method != "GET" && request.method != "HEAD" -> writeStatus(out, STATUS_BAD_REQUEST)
+                    request.method != "GET" && request.method != "HEAD" && request.method != "POST" -> writeStatus(out, STATUS_BAD_REQUEST)
+                    request.method == "POST" && request.path == "/play" -> handlePlayCommand(out, request)
                     request.path == "/media" || request.path == "/media/" -> handleList(out, request.method)
                     request.path.matches(THUMBNAIL_PATTERN) -> handleThumbnail(out, request)
                     request.path.startsWith("/media/") -> handleStream(out, bufferSize, request)
@@ -133,7 +135,18 @@ class HttpRangeServer(
                 headers[line.substring(0, colon).trim().lowercase()] = line.substring(colon + 1).trim()
             }
         }
-        return HttpRequest(method, path, headers)
+
+        // 读取 POST 请求体
+        var body = ""
+        if (method == "POST") {
+            val contentLength = headers["content-length"]?.toIntOrNull() ?: 0
+            if (contentLength > 0 && contentLength <= 64 * 1024) {
+                val bodyBytes = stream.readNBytes(contentLength)
+                body = bodyBytes.toString(Charsets.UTF_8)
+            }
+        }
+
+        return HttpRequest(method, path, headers, body)
     }
 
     private fun indexOfHeaderEnd(text: String): Int {
@@ -186,6 +199,50 @@ class HttpRangeServer(
         .replace("\"", "\\\"")
         .replace("\n", "\\n")
         .replace("\r", "\\r")
+
+    // ---------- 投屏控制 ----------
+
+    /** 投屏指令回调，由上层设置以处理投屏请求 */
+    var onPlayCommand: ((mediaId: String, title: String, position: Long) -> Unit)? = null
+
+    private fun handlePlayCommand(out: OutputStream, request: HttpRequest) {
+        try {
+            val json = request.body
+            if (json.isEmpty()) {
+                writeStatus(out, STATUS_BAD_REQUEST)
+                return
+            }
+
+            // 简单解析 JSON
+            val mediaId = extractJsonString(json, "mediaId") ?: ""
+            val title = extractJsonString(json, "title") ?: ""
+            val position = extractJsonLong(json, "position")
+
+            if (mediaId.isEmpty()) {
+                writeStatus(out, STATUS_BAD_REQUEST)
+                return
+            }
+
+            onPlayCommand?.invoke(mediaId, title, position)
+
+            val response = """{"status":"ok"}"""
+            writeResponse(out, STATUS_OK, MIME_JSON, response.toByteArray().size.toLong(), response.toByteArray())
+        } catch (e: Exception) {
+            writeStatus(out, STATUS_BAD_REQUEST)
+        }
+    }
+
+    private fun extractJsonString(json: String, key: String): String? {
+        val pattern = "\"$key\"\\s*:\\s*\"([^\"]*)\""
+        val regex = Regex(pattern)
+        return regex.find(json)?.groupValues?.get(1)
+    }
+
+    private fun extractJsonLong(json: String, key: String): Long {
+        val pattern = "\"$key\"\\s*:\\s*(\\d+)"
+        val regex = Regex(pattern)
+        return regex.find(json)?.groupValues?.get(1)?.toLongOrNull() ?: 0L
+    }
 
     // ---------- 缩略图 ----------
 

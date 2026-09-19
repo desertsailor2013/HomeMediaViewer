@@ -1,8 +1,10 @@
 package com.hmv.app
 
 import android.annotation.SuppressLint
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ActivityInfo
 import android.os.Build
 import android.os.Bundle
@@ -25,8 +27,10 @@ import androidx.media3.ui.PlayerView
  *
  * 支持播放队列：
  * - 通过 [EXTRA_URLS] / [EXTRA_TITLES] / [EXTRA_MEDIA_IDS] 传入列表
- * - ExoPlayer 使用 [ConcatenatingMediaSource] 实现连续播放
+ * - ExoPlayer 使用 [player.setMediaItems] 实现连续播放
  * - 通过 [EXTRA_START_INDEX] 指定起始播放位置
+ *
+ * 支持接收投屏指令（BroadcastReceiver）。
  */
 class PlayerActivity : AppCompatActivity() {
 
@@ -46,6 +50,17 @@ class PlayerActivity : AppCompatActivity() {
     private var isRemotePlayback = false
     private var networkMonitor: NetworkMonitor? = null
     private var isNetworkLost = false
+
+    private val castReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == MediaServerService.ACTION_CAST_PLAY) {
+                val mediaId = intent.getStringExtra(MediaServerService.EXTRA_CAST_MEDIA_ID) ?: return
+                val title = intent.getStringExtra(MediaServerService.EXTRA_CAST_TITLE) ?: ""
+                val position = intent.getLongExtra(MediaServerService.EXTRA_CAST_POSITION, 0L)
+                handleCastCommand(mediaId, title, position)
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -163,6 +178,14 @@ class PlayerActivity : AppCompatActivity() {
         if (isRemotePlayback) {
             startNetworkMonitor()
         }
+
+        // 注册投屏指令接收器
+        val filter = IntentFilter(MediaServerService.ACTION_CAST_PLAY)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(castReceiver, filter, RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(castReceiver, filter)
+        }
     }
 
     private fun updateQueueInfo() {
@@ -173,6 +196,19 @@ class PlayerActivity : AppCompatActivity() {
         val pos = player?.currentMediaItemIndex?.plus(1) ?: 1
         queueInfo.text = getString(R.string.queue_info, pos, urls.size)
         queueInfo.visibility = View.VISIBLE
+    }
+
+    private fun handleCastCommand(mediaId: String, title: String, position: Long) {
+        // 查找媒体 ID 在当前队列中的位置
+        val index = mediaIds.indexOf(mediaId)
+        if (index >= 0) {
+            player?.seekTo(index, position)
+            player?.playWhenReady = true
+            Toast.makeText(this, getString(R.string.cast_playing, title), Toast.LENGTH_SHORT).show()
+        } else {
+            // 队列中没有该媒体，提示
+            Toast.makeText(this, getString(R.string.cast_not_found, title), Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun startNetworkMonitor() {
@@ -266,6 +302,13 @@ class PlayerActivity : AppCompatActivity() {
         playerView.player = null
         player?.release()
         player = null
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        try {
+            unregisterReceiver(castReceiver)
+        } catch (_: Exception) {}
     }
 
     private fun saveProgress() {
