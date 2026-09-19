@@ -24,12 +24,13 @@ class MediaAdapter(
 
     private val allItems = mutableListOf<MediaItem>()
     private val displayItems = mutableListOf<ListItem>()
+    private val collapsedFolders = mutableSetOf<String>()
     private var searchQuery = ""
     private var typeFilter = TypeFilter.ALL
     private var groupByFolder = false
 
     sealed class ListItem {
-        data class Header(val folderName: String, val count: Int) : ListItem()
+        data class Header(val folderName: String, val count: Int, val collapsed: Boolean) : ListItem()
         data class Media(val item: MediaItem) : ListItem()
     }
 
@@ -120,12 +121,24 @@ class MediaAdapter(
 
         val result = mutableListOf<ListItem>()
         for ((folder, folderItems) in grouped) {
-            result.add(ListItem.Header(folder, folderItems.size))
-            for (item in folderItems) {
-                result.add(ListItem.Media(item))
+            val collapsed = collapsedFolders.contains(folder)
+            result.add(ListItem.Header(folder, folderItems.size, collapsed))
+            if (!collapsed) {
+                for (item in folderItems) {
+                    result.add(ListItem.Media(item))
+                }
             }
         }
         return result
+    }
+
+    fun toggleFolder(folderName: String) {
+        if (collapsedFolders.contains(folderName)) {
+            collapsedFolders.remove(folderName)
+        } else {
+            collapsedFolders.add(folderName)
+        }
+        applyFilter()
     }
 
     override fun getItemViewType(position: Int): Int = when (displayItems[position]) {
@@ -156,6 +169,9 @@ class MediaAdapter(
                 val h = holder as HeaderHolder
                 h.folderName.text = item.folderName
                 h.count.text = holder.itemView.context.getString(R.string.folder_count, item.count)
+                val arrowRes = if (item.collapsed) R.drawable.ic_arrow_right else R.drawable.ic_arrow_down
+                h.arrow.setImageResource(arrowRes)
+                h.itemView.setOnClickListener { toggleFolder(item.folderName) }
             }
             is ListItem.Media -> {
                 val m = holder as MediaHolder
@@ -203,6 +219,7 @@ class MediaAdapter(
     class HeaderHolder(view: View) : RecyclerView.ViewHolder(view) {
         val folderName: TextView = view.findViewById(R.id.folder_name)
         val count: TextView = view.findViewById(R.id.folder_count)
+        val arrow: ImageView = view.findViewById(R.id.folder_arrow)
     }
 
     class MediaHolder(view: View) : RecyclerView.ViewHolder(view) {
