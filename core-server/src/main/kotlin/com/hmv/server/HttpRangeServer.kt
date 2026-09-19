@@ -201,18 +201,20 @@ class HttpRangeServer(
             return
         }
         stream.use { input ->
-            val bytes = input.readBytes()
-            val mime = if (bytes.size >= 4) {
-                when {
-                    bytes[0] == 0xFF.toByte() && bytes[1] == 0xD8.toByte() -> "image/jpeg"
-                    bytes[0] == 0x89.toByte() && bytes[1] == 0x50.toByte() -> "image/png"
-                    else -> MIME_OCTET
-                }
-            } else MIME_OCTET
+            val first2 = input.readNBytes(2)
+            val mime = when {
+                first2.size >= 2 && first2[0] == 0xFF.toByte() && first2[1] == 0xD8.toByte() -> "image/jpeg"
+                first2.size >= 2 && first2[0] == 0x89.toByte() && first2[1] == 0x50.toByte() -> "image/png"
+                else -> MIME_OCTET
+            }
+            val contentLength = input.available().toLong() + first2.size
             if (request.method == "HEAD") {
-                writeHead(out, STATUS_OK, mime, bytes.size.toLong(), emptyMap())
+                writeHead(out, STATUS_OK, mime, contentLength, emptyMap())
             } else {
-                writeResponse(out, STATUS_OK, mime, bytes.size.toLong(), bytes)
+                writeHead(out, STATUS_OK, mime, contentLength, emptyMap())
+                out.write(first2)
+                input.copyTo(out, bufferSize)
+                out.flush()
             }
         }
     }
