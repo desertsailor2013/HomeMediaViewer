@@ -29,6 +29,7 @@ class MainActivity : AppCompatActivity() {
     private var networkMonitor: NetworkMonitor? = null
     private var currentDevice: NsdHelper.DiscoveredDevice? = null
     private val remoteClient = RemoteMediaClient()
+    private lateinit var favoritesManager: DeviceFavoritesManager
     private val statusView by lazy { findViewById<TextView>(R.id.status) }
     private val emptyHint by lazy { findViewById<TextView>(R.id.empty_hint) }
     private val searchInput by lazy { findViewById<EditText>(R.id.search_input) }
@@ -38,7 +39,10 @@ class MainActivity : AppCompatActivity() {
     private val playAllBtn by lazy { findViewById<TextView>(R.id.btn_play_all) }
     private val groupToggleBtn by lazy { findViewById<TextView>(R.id.btn_group_toggle) }
     private val mediaAdapter = MediaAdapter { onMediaClicked(it) }
-    private val deviceAdapter = DeviceAdapter { onDeviceClicked(it) }
+    private val deviceAdapter = DeviceAdapter(
+        onDeviceClicked = { onDeviceClicked(it) },
+        onFavoriteClicked = { onFavoriteClicked(it) }
+    )
 
     private val connection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
@@ -62,6 +66,9 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        favoritesManager = DeviceFavoritesManager(this)
+        deviceAdapter.setFavoritesManager(favoritesManager)
 
         val mediaList = findViewById<RecyclerView>(R.id.media_list)
         mediaList.layoutManager = LinearLayoutManager(this)
@@ -313,6 +320,44 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    private fun onFavoriteClicked(device: NsdHelper.DiscoveredDevice) {
+        if (favoritesManager.isFavorite(device.name)) {
+            // 已收藏 → 弹出编辑别名对话框
+            showAliasDialog(device)
+        } else {
+            // 未收藏 → 直接收藏
+            favoritesManager.toggleFavorite(device)
+            deviceAdapter.setFavoritesManager(favoritesManager)
+            Toast.makeText(this, R.string.device_favorited, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun showAliasDialog(device: NsdHelper.DiscoveredDevice) {
+        val currentAlias = favoritesManager.getAlias(device.name)
+        val editText = android.widget.EditText(this).apply {
+            hint = getString(R.string.device_alias_hint)
+            setText(currentAlias)
+            setPadding(48, 32, 48, 32)
+        }
+
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle(getString(R.string.set_alias))
+            .setView(editText)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val alias = editText.text.toString().trim()
+                favoritesManager.setAlias(device.name, alias)
+                deviceAdapter.setFavoritesManager(favoritesManager)
+                Toast.makeText(this, R.string.alias_saved, Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton(R.string.remove_favorite) { _, _ ->
+                favoritesManager.removeFavorite(device.name)
+                deviceAdapter.setFavoritesManager(favoritesManager)
+                Toast.makeText(this, R.string.favorite_removed, Toast.LENGTH_SHORT).show()
+            }
+            .setNeutralButton(android.R.string.cancel, null)
+            .show()
     }
 
     override fun onDestroy() {
