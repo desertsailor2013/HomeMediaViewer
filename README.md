@@ -41,7 +41,7 @@
 │       ├── MediaScanner.kt      MediaStore 扫描视频/音频
 │       ├── NsdHelper.kt         mDNS 注册与发现
 │       ├── DeviceAdapter.kt     设备列表 RecyclerView 适配器
-│       ├── MediaAdapter.kt      媒体列表适配器（缩略图 + 搜索过滤）
+│       ├── MediaAdapter.kt      媒体列表适配器（缩略图 + 搜索过滤 + DiffUtil）
 │       ├── ContentMediaRepository.kt  content:// URI → RangeReadable 桥接
 │       ├── RemoteMediaClient.kt 远程设备媒体列表拉取
 │       ├── PlayProgressManager.kt 播放进度持久化
@@ -62,6 +62,7 @@
 ```bash
 ./gradlew :core-server:test      # 运行服务端单测（20 项）
 ./gradlew :app:assembleDebug     # 构建调试 APK
+./gradlew :app:assembleRelease   # 构建 Release APK（含 R8 混淆）
 ```
 
 APK 产物：`app/build/outputs/apk/debug/app-debug.apk`
@@ -103,6 +104,13 @@ APK 产物：`app/build/outputs/apk/debug/app-debug.apk`
 | `READ_EXTERNAL_STORAGE` | API ≤ 32 媒体文件读取 |
 | `FOREGROUND_SERVICE` | HTTP 服务后台常驻 |
 
+## 安全特性
+
+- 签名密码存储在 `local.properties`（已 gitignore），不入库
+- 网络安全配置限定 HTTP 明文仅允许局域网访问
+- 禁用 `allowBackup` 防止 adb 提取应用数据
+- R8 混淆 + 资源缩减（Release 构建）
+
 ## 环境要求
 
 - OpenJDK 17+
@@ -117,7 +125,7 @@ APK 产物：`app/build/outputs/apk/debug/app-debug.apk`
 - [x] M4 跨设备播放
 - [x] 前台 Service + 签名配置
 - [x] M5 缩略图 / 播放进度保存 / 搜索筛选 / 深色模式 / 全屏播放 / 网络感知
-- [ ] R8 混淆优化
+- [x] R8 混淆优化
 - [ ] CI/CD 自动构建
 
 ## License
