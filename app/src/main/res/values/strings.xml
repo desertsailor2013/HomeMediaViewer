@@ -48,6 +48,7 @@
     <string name="speed">播放速度</string>
     <string name="speed_reset">已重置为 1.0x</string>
     <string name="queue_title">播放队列</string>
+    <string name="queue">队列</string>
     <string name="queue_empty">队列为空</string>
     <string name="queue_remove">移除</string>
     <string name="queue_item_remove">已从队列移除</string>
@@ -56,4 +57,10 @@
     <string name="cast_success">投屏成功</string>
     <string name="cast_failed">投屏失败</string>
     <string name="unknown_title">未知标题</string>
+    <string name="select_media_to_play">选择媒体文件开始播放</string>
+    <string name="clear_queue">清空队列</string>
+    <string name="back">返回</string>
+    <string name="cast_to_device">投屏</string>
+    <string name="dual_pane_mode">双栏模式</string>
+    <string name="single_pane_mode">单栏模式</string>
 </resources>

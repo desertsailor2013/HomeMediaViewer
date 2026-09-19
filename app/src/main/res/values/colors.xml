@@ -25,4 +25,10 @@
 
     <!-- 设备列表 -->
     <color name="bg_device_item">#FAFAFA</color>
+
+    <!-- 分隔线 -->
+    <color name="divider">#E0E0E0</color>
+
+    <!-- 播放器背景 -->
+    <color name="bg_player">#F5F5F5</color>
 </resources>

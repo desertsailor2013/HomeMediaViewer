@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 平板专用尺寸 -->
+    <dimen name="tablet_left_pane_width">360dp</dimen>
+    <dimen name="tablet_right_pane_width">540dp</dimen>
+    <dimen name="tablet_media_grid_min_width">220dp</dimen>
+    <dimen name="tablet_player_height">320dp</dimen>
+    <dimen name="tablet_list_item_height">80dp</dimen>
+    <dimen name="tablet_section_padding">24dp</dimen>
+    <dimen name="tablet_text_title">22sp</dimen>
+    <dimen name="tablet_text_body">16sp</dimen>
+    <dimen name="tablet_text_caption">14sp</dimen>
+</resources>
