@@ -35,8 +35,14 @@ const Player = {
         this.audioEl.addEventListener('ended', () => this.clearProgress());
 
         // 播放时记录进度
-        this.videoEl.addEventListener('timeupdate', () => this.saveProgress());
-        this.audioEl.addEventListener('timeupdate', () => this.saveProgress());
+        this.videoEl.addEventListener('timeupdate', () => {
+            this.saveProgress();
+            this.updateHistoryProgress();
+        });
+        this.audioEl.addEventListener('timeupdate', () => {
+            this.saveProgress();
+            this.updateHistoryProgress();
+        });
 
         // 加载保存的速度
         this.loadSpeed();
@@ -68,6 +74,11 @@ const Player = {
 
         // 恢复播放进度
         this.restoreProgress();
+
+        // 记录播放历史
+        if (typeof History !== 'undefined') {
+            History.add(mediaItem);
+        }
     },
 
     /**
@@ -169,5 +180,16 @@ const Player = {
      */
     getCurrentMedia() {
         return this.currentMedia;
+    },
+
+    /**
+     * 更新播放历史进度
+     */
+    updateHistoryProgress() {
+        if (!this.currentMedia || typeof History === 'undefined') return;
+        const player = this.videoEl.classList.contains('active') ? this.videoEl : this.audioEl;
+        if (player.duration > 0) {
+            History.updateProgress(this.currentMedia.id, player.currentTime, player.duration);
+        }
     }
 };
