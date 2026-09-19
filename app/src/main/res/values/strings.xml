@@ -46,6 +46,7 @@
     <string name="cast_not_found">未找到媒体：%1$s</string>
     <string name="cast_to">投屏到</string>
     <string name="speed">播放速度</string>
+    <string name="speed_reset">已重置为 1.0x</string>
     <string name="queue_title">播放队列</string>
     <string name="queue_empty">队列为空</string>
     <string name="queue_remove">移除</string>
