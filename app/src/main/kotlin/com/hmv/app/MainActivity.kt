@@ -35,6 +35,7 @@ class MainActivity : AppCompatActivity() {
     private val filterAll by lazy { findViewById<TextView>(R.id.filter_all) }
     private val filterVideo by lazy { findViewById<TextView>(R.id.filter_video) }
     private val filterAudio by lazy { findViewById<TextView>(R.id.filter_audio) }
+    private val playAllBtn by lazy { findViewById<TextView>(R.id.btn_play_all) }
     private val mediaAdapter = MediaAdapter { onMediaClicked(it) }
     private val deviceAdapter = DeviceAdapter { onDeviceClicked(it) }
 
@@ -71,6 +72,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         setupSearchAndFilter()
+        setupPlayAllButton()
         setupNetworkMonitor()
         requestMediaPermissions()
     }
@@ -105,6 +107,43 @@ class MainActivity : AppCompatActivity() {
         filterAudio.setOnClickListener { setFilter(MediaAdapter.TypeFilter.AUDIO) }
     }
 
+    private fun setupPlayAllButton() {
+        playAllBtn.setOnClickListener {
+            val items = mediaAdapter.getCurrentItems()
+            if (items.isEmpty()) return@setOnClickListener
+            playAll(items, 0)
+        }
+    }
+
+    private fun playAll(items: List<MediaItem>, startIndex: Int) {
+        val urls = mutableListOf<String>()
+        val titles = mutableListOf<String>()
+        val ids = mutableListOf<String>()
+
+        val device = currentDevice
+        val port = service?.port
+
+        for (item in items) {
+            val url = if (device != null) {
+                remoteClient.getMediaUrl(
+                    RemoteMediaClient.RemoteDevice(device.name, device.host, device.port),
+                    item.id
+                )
+            } else if (port != null) {
+                "http://127.0.0.1:$port/media/${item.id}"
+            } else {
+                continue
+            }
+            urls.add(url)
+            titles.add(item.title)
+            ids.add(item.id)
+        }
+
+        if (urls.isNotEmpty()) {
+            startActivity(PlayerActivity.createIntent(this, urls, titles, ids, startIndex))
+        }
+    }
+
     private fun setFilter(filter: MediaAdapter.TypeFilter) {
         mediaAdapter.setTypeFilter(filter)
         updateFilterUI(filter)
@@ -132,6 +171,7 @@ class MainActivity : AppCompatActivity() {
         }
         emptyHint.text = hintText
         emptyHint.visibility = if (hasItems) android.view.View.GONE else android.view.View.VISIBLE
+        playAllBtn.visibility = if (hasItems) android.view.View.VISIBLE else android.view.View.GONE
     }
 
     private fun requestMediaPermissions() {
@@ -213,17 +253,24 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun onMediaClicked(item: MediaItem) {
-        val device = currentDevice
-        if (device != null) {
-            val url = remoteClient.getMediaUrl(
-                RemoteMediaClient.RemoteDevice(device.name, device.host, device.port),
-                item.id
-            )
-            startActivity(PlayerActivity.createIntent(this, url, item.title, item.id))
+        val items = mediaAdapter.getCurrentItems()
+        val index = items.indexOfFirst { it.id == item.id }
+        if (index >= 0 && items.size > 1) {
+            playAll(items, index)
         } else {
-            val port = service?.port ?: return
-            val url = "http://127.0.0.1:$port/media/${item.id}"
-            startActivity(PlayerActivity.createIntent(this, url, item.title, item.id))
+            // 单文件播放（兼容旧逻辑）
+            val device = currentDevice
+            if (device != null) {
+                val url = remoteClient.getMediaUrl(
+                    RemoteMediaClient.RemoteDevice(device.name, device.host, device.port),
+                    item.id
+                )
+                startActivity(PlayerActivity.createIntent(this, url, item.title, item.id))
+            } else {
+                val port = service?.port ?: return
+                val url = "http://127.0.0.1:$port/media/${item.id}"
+                startActivity(PlayerActivity.createIntent(this, url, item.title, item.id))
+            }
         }
     }
 

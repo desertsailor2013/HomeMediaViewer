@@ -42,4 +42,18 @@
         android:textColor="#FFFFFF"
         android:textSize="15sp"
         android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/queue_info"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end|top"
+        android:layout_marginEnd="16dp"
+        android:layout_marginTop="16dp"
+        android:background="#80000000"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="4dp"
+        android:textColor="#FFFFFF"
+        android:textSize="12sp"
+        android:visibility="gone" />
 </FrameLayout>

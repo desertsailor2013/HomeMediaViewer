@@ -121,7 +121,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:clipToPadding="false"
-            android:paddingBottom="8dp" />
+            android:paddingBottom="56dp" />
 
         <TextView
             android:id="@+id/empty_hint"
@@ -134,4 +134,17 @@
             android:textSize="14sp"
             android:visibility="gone" />
     </FrameLayout>
+
+    <TextView
+        android:id="@+id/btn_play_all"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="8dp"
+        android:background="@color/filter_selected"
+        android:gravity="center"
+        android:text="@string/play_all"
+        android:textColor="@android:color/white"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:visibility="gone" />
 </LinearLayout>
