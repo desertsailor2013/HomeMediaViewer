@@ -30,11 +30,16 @@ class MediaServerService : Service() {
         createNotificationChannel()
     }
 
-    @Suppress("DEPRECATION", "UNCHECKED_CAST")
+    @Suppress("UNCHECKED_CAST")
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_START -> {
-                items = (intent.getSerializableExtra(EXTRA_ITEMS) as? ArrayList<com.hmv.server.MediaItem>)?.toList() ?: emptyList()
+                items = if (Build.VERSION.SDK_INT >= 33) {
+                    (intent.getSerializableExtra(EXTRA_ITEMS, ArrayList::class.java) as? ArrayList<com.hmv.server.MediaItem>)?.toList() ?: emptyList()
+                } else {
+                    @Suppress("DEPRECATION")
+                    (intent.getSerializableExtra(EXTRA_ITEMS) as? ArrayList<com.hmv.server.MediaItem>)?.toList() ?: emptyList()
+                }
                 startServer()
             }
             ACTION_STOP -> {
