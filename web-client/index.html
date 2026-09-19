@@ -7,51 +7,226 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <!-- 顶部导航栏 -->
-    <header class="navbar">
-        <div class="navbar-brand">
+    <!-- 侧边栏导航 -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
             <span class="logo">&#9654;</span>
             <h1>HomeMediaViewer</h1>
         </div>
-        <div class="navbar-actions">
-            <button id="btn-theme" class="btn-icon" title="切换主题">&#9789;</button>
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-item active" data-page="media">
+                <span class="nav-icon">&#9654;</span>
+                <span class="nav-text">媒体库</span>
+            </a>
+            <a href="#" class="nav-item" data-page="devices">
+                <span class="nav-icon">&#9742;</span>
+                <span class="nav-text">设备列表</span>
+            </a>
+            <a href="#" class="nav-item" data-page="favorites">
+                <span class="nav-icon">&#9733;</span>
+                <span class="nav-text">收藏设备</span>
+            </a>
+            <a href="#" class="nav-item" data-page="queue">
+                <span class="nav-icon">&#9776;</span>
+                <span class="nav-text">播放队列</span>
+            </a>
+            <a href="#" class="nav-item" data-page="settings">
+                <span class="nav-icon">&#9881;</span>
+                <span class="nav-text">设置</span>
+            </a>
+            <a href="#" class="nav-item" data-page="about">
+                <span class="nav-icon">&#9432;</span>
+                <span class="nav-text">关于</span>
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <button id="btn-theme" class="btn-theme-toggle" title="切换主题">&#9789; 深色模式</button>
         </div>
-    </header>
-
-    <!-- 连接栏 -->
-    <div class="connect-bar">
-        <div class="connect-form">
-            <input type="text" id="input-host" placeholder="设备 IP" value="127.0.0.1">
-            <input type="number" id="input-port" placeholder="端口" value="8080">
-            <button id="btn-connect" class="btn-primary">连接</button>
-            <span id="connect-status" class="status-text"></span>
-        </div>
-    </div>
+    </aside>
 
     <!-- 主内容区 -->
-    <main class="main-content">
-        <!-- 搜索与筛选 -->
-        <div class="toolbar">
-            <div class="search-box">
-                <input type="text" id="search-input" placeholder="搜索文件名...">
+    <div class="app-container">
+        <!-- 顶部栏（移动端） -->
+        <header class="topbar">
+            <button id="btn-menu" class="btn-icon">&#9776;</button>
+            <h2 id="page-title">媒体库</h2>
+            <div class="topbar-actions">
+                <button id="btn-theme-mobile" class="btn-icon">&#9789;</button>
             </div>
-            <div class="filter-buttons">
-                <button class="filter-btn active" data-filter="all">全部</button>
-                <button class="filter-btn" data-filter="video">视频</button>
-                <button class="filter-btn" data-filter="audio">音频</button>
-            </div>
-            <div class="view-buttons">
-                <button id="btn-group" class="btn-toggle" title="分组/平铺">&#9776; 分组</button>
-            </div>
-        </div>
+        </header>
 
-        <!-- 媒体列表 -->
-        <div id="media-container" class="media-container">
-            <div id="empty-hint" class="empty-hint">
-                <p>请先连接设备</p>
+        <!-- 页面容器 -->
+        <main class="main-content">
+
+            <!-- ===== 媒体库页面 ===== -->
+            <div id="page-media" class="page active">
+                <!-- 连接栏 -->
+                <div class="connect-bar">
+                    <div class="connect-form">
+                        <input type="text" id="input-host" placeholder="设备 IP" value="127.0.0.1">
+                        <input type="number" id="input-port" placeholder="端口" value="8080">
+                        <button id="btn-connect" class="btn-primary">连接</button>
+                        <span id="connect-status" class="status-text"></span>
+                    </div>
+                </div>
+
+                <!-- 搜索与筛选 -->
+                <div class="toolbar">
+                    <div class="search-box">
+                        <input type="text" id="search-input" placeholder="搜索文件名...">
+                    </div>
+                    <div class="filter-buttons">
+                        <button class="filter-btn active" data-filter="all">全部</button>
+                        <button class="filter-btn" data-filter="video">视频</button>
+                        <button class="filter-btn" data-filter="audio">音频</button>
+                    </div>
+                    <div class="view-buttons">
+                        <button id="btn-group" class="btn-toggle" title="分组/平铺">&#9776; 分组</button>
+                    </div>
+                </div>
+
+                <!-- 媒体列表 -->
+                <div id="media-container" class="media-container">
+                    <div id="empty-hint" class="empty-hint">
+                        <p>请先连接设备</p>
+                    </div>
+                </div>
             </div>
-        </div>
-    </main>
+
+            <!-- ===== 设备列表页面 ===== -->
+            <div id="page-devices" class="page">
+                <div class="page-header">
+                    <h3>已发现设备</h3>
+                    <button id="btn-refresh-devices" class="btn-secondary">刷新</button>
+                </div>
+                <div id="device-list-container" class="list-container">
+                    <div class="empty-hint"><p>暂无设备</p></div>
+                </div>
+            </div>
+
+            <!-- ===== 收藏设备页面 ===== -->
+            <div id="page-favorites" class="page">
+                <div class="page-header">
+                    <h3>收藏设备</h3>
+                    <button id="btn-add-favorite" class="btn-primary">+ 添加</button>
+                </div>
+                <div id="favorite-list-container" class="list-container">
+                    <div class="empty-hint"><p>暂无收藏设备</p></div>
+                </div>
+            </div>
+
+            <!-- ===== 播放队列页面 ===== -->
+            <div id="page-queue" class="page">
+                <div class="page-header">
+                    <h3>播放队列</h3>
+                    <button id="btn-clear-queue" class="btn-secondary">清空</button>
+                </div>
+                <div id="queue-list-container" class="list-container">
+                    <div class="empty-hint"><p>队列为空</p></div>
+                </div>
+            </div>
+
+            <!-- ===== 设置页面 ===== -->
+            <div id="page-settings" class="page">
+                <div class="page-header">
+                    <h3>设置</h3>
+                </div>
+                <div class="settings-container">
+                    <div class="setting-group">
+                        <h4>连接</h4>
+                        <div class="setting-item">
+                            <label>自动重连</label>
+                            <input type="checkbox" id="setting-auto-reconnect" checked>
+                        </div>
+                        <div class="setting-item">
+                            <label>连接超时（秒）</label>
+                            <input type="number" id="setting-timeout" value="5" min="1" max="30">
+                        </div>
+                    </div>
+                    <div class="setting-group">
+                        <h4>播放</h4>
+                        <div class="setting-item">
+                            <label>自动播放下一个</label>
+                            <input type="checkbox" id="setting-auto-next">
+                        </div>
+                        <div class="setting-item">
+                            <label>默认播放速度</label>
+                            <select id="setting-default-speed">
+                                <option value="0.5">0.5x</option>
+                                <option value="0.75">0.75x</option>
+                                <option value="1" selected>1.0x</option>
+                                <option value="1.25">1.25x</option>
+                                <option value="1.5">1.5x</option>
+                                <option value="2">2.0x</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="setting-group">
+                        <h4>显示</h4>
+                        <div class="setting-item">
+                            <label>深色模式</label>
+                            <input type="checkbox" id="setting-dark-mode">
+                        </div>
+                        <div class="setting-item">
+                            <label>显示缩略图</label>
+                            <input type="checkbox" id="setting-show-thumbnails" checked>
+                        </div>
+                    </div>
+                    <div class="setting-group">
+                        <h4>数据</h4>
+                        <div class="setting-item">
+                            <button id="btn-clear-progress" class="btn-danger">清除所有播放进度</button>
+                        </div>
+                        <div class="setting-item">
+                            <button id="btn-clear-favorites" class="btn-danger">清除所有收藏</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== 关于页面 ===== -->
+            <div id="page-about" class="page">
+                <div class="page-header">
+                    <h3>关于</h3>
+                </div>
+                <div class="about-container">
+                    <div class="about-logo">&#9654;</div>
+                    <h2>HomeMediaViewer</h2>
+                    <p class="about-version">v0.3-web</p>
+                    <p class="about-desc">局域网内多台设备互相发现、浏览、点播彼此的音视频文件，无需拷贝源文件。</p>
+
+                    <div class="about-section">
+                        <h4>功能特性</h4>
+                        <ul>
+                            <li>mDNS 设备自动发现</li>
+                            <li>HTTP + Range 流媒体服务</li>
+                            <li>跨设备播放与投屏</li>
+                            <li>媒体分组浏览</li>
+                            <li>播放队列管理</li>
+                            <li>播放速度调节</li>
+                            <li>深色模式</li>
+                        </ul>
+                    </div>
+
+                    <div class="about-section">
+                        <h4>技术栈</h4>
+                        <ul>
+                            <li>HTML5 / CSS3 / Vanilla JS</li>
+                            <li>HTML5 Video / Audio API</li>
+                            <li>CSS Grid / Flexbox</li>
+                            <li>localStorage 持久化</li>
+                        </ul>
+                    </div>
+
+                    <div class="about-section">
+                        <h4>开源协议</h4>
+                        <p>MIT License</p>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
 
     <!-- 播放器面板 -->
     <div id="player-panel" class="player-panel hidden">
@@ -64,7 +239,10 @@
             <audio id="audio-player" controls></audio>
         </div>
         <div class="player-footer">
-            <button id="btn-cast" class="btn-secondary" title="投屏到其他设备">&#9673; 投屏</button>
+            <div class="player-controls-left">
+                <button id="btn-cast" class="btn-secondary" title="投屏到其他设备">&#9673; 投屏</button>
+                <button id="btn-add-to-queue" class="btn-secondary" title="添加到队列">+ 队列</button>
+            </div>
             <span id="player-speed" class="speed-label">1.0x</span>
         </div>
     </div>
@@ -87,9 +265,31 @@
         </div>
     </div>
 
+    <!-- 添加收藏弹窗 -->
+    <div id="favorite-dialog" class="dialog hidden">
+        <div class="dialog-content">
+            <div class="dialog-header">
+                <h3>添加收藏设备</h3>
+                <button id="btn-close-fav-dialog" class="btn-icon">&times;</button>
+            </div>
+            <div class="dialog-body">
+                <div class="cast-form">
+                    <input type="text" id="fav-name" placeholder="设备名称">
+                    <input type="text" id="fav-host" placeholder="设备 IP">
+                    <input type="number" id="fav-port" placeholder="端口" value="8080">
+                    <input type="text" id="fav-alias" placeholder="别名（可选）">
+                    <button id="btn-save-favorite" class="btn-primary">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="js/api.js"></script>
     <script src="js/player.js"></script>
     <script src="js/device.js"></script>
+    <script src="js/queue.js"></script>
+    <script src="js/favorites.js"></script>
+    <script src="js/settings.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
