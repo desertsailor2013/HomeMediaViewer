@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
 import coil.request.ImageRequest
@@ -44,8 +45,7 @@ class MediaAdapter(
     }
 
     private fun applyFilter() {
-        items.clear()
-        items.addAll(allItems.filter { item ->
+        val newItems = allItems.filter { item ->
             val matchesQuery = searchQuery.isEmpty() ||
                 item.title.contains(searchQuery, ignoreCase = true)
             val matchesType = when (typeFilter) {
@@ -54,8 +54,18 @@ class MediaAdapter(
                 TypeFilter.AUDIO -> item.mimeType.startsWith("audio")
             }
             matchesQuery && matchesType
+        }
+        val diff = DiffUtil.calculateDiff(object : DiffUtil.Callback() {
+            override fun getOldListSize() = items.size
+            override fun getNewListSize() = newItems.size
+            override fun areItemsTheSame(oldPos: Int, newPos: Int) =
+                items[oldPos].id == newItems[newPos].id
+            override fun areContentsTheSame(oldPos: Int, newPos: Int) =
+                items[oldPos] == newItems[newPos]
         })
-        notifyDataSetChanged()
+        items.clear()
+        items.addAll(newItems)
+        diff.dispatchUpdatesTo(this)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ItemHolder {
