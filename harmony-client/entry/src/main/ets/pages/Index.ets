@@ -15,6 +15,7 @@ struct Index {
   @State currentDevice: DiscoveredDevice | null = null;
   @State isGroupByFolder: boolean = false;
   @State typeFilter: string = 'all';
+  @State expandedFolders: Set<string> = new Set();
 
   private remoteClient: RemoteMediaClient = new RemoteMediaClient();
   private favoritesManager: FavoritesManager = new FavoritesManager(this.getUIContext().getHostContext());
@@ -106,6 +107,23 @@ struct Index {
     }
 
     return items;
+  }
+
+  private getGroupedItems(): Map<string, MediaItem[]> {
+    let filtered = this.getFilteredItems();
+    let grouped = new Map<string, MediaItem[]>();
+
+    for (let item of filtered) {
+      let folder = item.folderName || '未分类';
+      let items = grouped.get(folder);
+      if (!items) {
+        items = [];
+        grouped.set(folder, items);
+      }
+      items.push(item);
+    }
+
+    return grouped;
   }
 
   private playMedia(item: MediaItem): void {
@@ -242,10 +260,17 @@ struct Index {
           .fontColor(this.typeFilter === 'audio' ? '#1E88E5' : '#888888')
           .margin({ left: 16 })
           .onClick(() => { this.typeFilter = 'audio'; })
+
+        Text(this.isGroupByFolder ? '平铺' : '按文件夹')
+          .fontSize(12)
+          .fontColor(this.isGroupByFolder ? '#1E88E5' : '#888888')
+          .layoutWeight(1)
+          .textAlign(TextAlign.End)
+          .onClick(() => { this.isGroupByFolder = !this.isGroupByFolder; })
       }
       .width('100%')
       .height(32)
-      .padding({ left: 16 })
+      .padding({ left: 16, right: 16 })
       .margin({ bottom: 8 })
 
       // 全部播放按钮
@@ -265,43 +290,132 @@ struct Index {
 
       // 媒体列表
       List() {
-        ForEach(this.getFilteredItems(), (item: MediaItem) => {
-          ListItem() {
-            Row() {
-              Column() {
-                Text(item.mimeType.includes('video') ? '🎬' : '🎵')
-                  .fontSize(24)
-              }
-              .width(60)
-              .height(60)
-              .backgroundColor('#F0F0F0')
-              .justifyContent(FlexAlign.Center)
-              .borderRadius(8)
-
-              Column() {
-                Text(item.title)
-                  .fontSize(16)
+        if (this.isGroupByFolder) {
+          ForEach(Array.from(this.getGroupedItems().entries()), (entry: [string, MediaItem[]]) => {
+            ListItem() {
+              Row() {
+                Text(`📁 ${entry[0]}`)
+                  .fontSize(14)
+                  .fontWeight(FontWeight.Bold)
                   .fontColor('#212121')
-                  .maxLines(1)
-                  .textOverflow({ overflow: TextOverflow.Ellipsis })
-                Text(item.folderName)
+                  .layoutWeight(1)
+                Text(`${entry[1].length} 个文件`)
                   .fontSize(12)
                   .fontColor('#757575')
-                  .margin({ top: 4 })
+                Text(this.expandedFolders.has(entry[0]) ? '▼' : '▶')
+                  .fontSize(12)
+                  .fontColor('#757575')
+                  .margin({ left: 8 })
               }
-              .alignItems(HorizontalAlign.Start)
-              .layoutWeight(1)
-              .margin({ left: 12 })
+              .width('100%')
+              .height(48)
+              .padding({ left: 16, right: 16 })
+              .onClick(() => {
+                if (this.expandedFolders.has(entry[0])) {
+                  this.expandedFolders.delete(entry[0]);
+                } else {
+                  this.expandedFolders.add(entry[0]);
+                }
+              })
             }
-            .width('100%')
-            .height(72)
-            .padding({ left: 16, right: 16 })
-            .onClick(() => this.playMedia(item))
-          }
-        })
+
+            if (this.expandedFolders.has(entry[0])) {
+              ForEach(entry[1], (item: MediaItem) => {
+                ListItem() {
+                  Row() {
+                    if (item.thumbnailUri) {
+                      Image(item.thumbnailUri)
+                        .width(60)
+                        .height(60)
+                        .borderRadius(8)
+                        .objectFit(ImageFit.Cover)
+                    } else {
+                      Column() {
+                        Text(item.mimeType.includes('video') ? '🎬' : '🎵')
+                          .fontSize(24)
+                      }
+                      .width(60)
+                      .height(60)
+                      .backgroundColor('#F0F0F0')
+                      .justifyContent(FlexAlign.Center)
+                      .borderRadius(8)
+                    }
+
+                    Column() {
+                      Text(item.title)
+                        .fontSize(16)
+                        .fontColor('#212121')
+                        .maxLines(1)
+                        .textOverflow({ overflow: TextOverflow.Ellipsis })
+                    }
+                    .alignItems(HorizontalAlign.Start)
+                    .layoutWeight(1)
+                    .margin({ left: 12 })
+                  }
+                  .width('100%')
+                  .height(72)
+                  .padding({ left: 40, right: 16 })
+                  .onClick(() => this.playMedia(item))
+                }
+              })
+            }
+          })
+        } else {
+          ForEach(this.getFilteredItems(), (item: MediaItem) => {
+            ListItem() {
+              Row() {
+                if (item.thumbnailUri) {
+                  Image(item.thumbnailUri)
+                    .width(60)
+                    .height(60)
+                    .borderRadius(8)
+                    .objectFit(ImageFit.Cover)
+                } else {
+                  Column() {
+                    Text(item.mimeType.includes('video') ? '🎬' : '🎵')
+                      .fontSize(24)
+                  }
+                  .width(60)
+                  .height(60)
+                  .backgroundColor('#F0F0F0')
+                  .justifyContent(FlexAlign.Center)
+                  .borderRadius(8)
+                }
+
+                Column() {
+                  Text(item.title)
+                    .fontSize(16)
+                    .fontColor('#212121')
+                    .maxLines(1)
+                    .textOverflow({ overflow: TextOverflow.Ellipsis })
+                  Text(item.folderName)
+                    .fontSize(12)
+                    .fontColor('#757575')
+                    .margin({ top: 4 })
+                }
+                .alignItems(HorizontalAlign.Start)
+                .layoutWeight(1)
+                .margin({ left: 12 })
+              }
+              .width('100%')
+              .height(72)
+              .padding({ left: 16, right: 16 })
+              .onClick(() => this.playMedia(item))
+            }
+          })
+        }
       }
       .width('100%')
       .layoutWeight(1)
+
+      // 空状态提示
+      if (this.getFilteredItems().length === 0) {
+        Text('没有媒体文件')
+          .fontSize(14)
+          .fontColor('#757575')
+          .layoutWeight(1)
+          .textAlign(TextAlign.Center)
+      }
     }
     .width('100%')
     .height('100%')
