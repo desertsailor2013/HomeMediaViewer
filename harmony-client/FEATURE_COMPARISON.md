@@ -12,11 +12,11 @@
 | Media list | ✅ RecyclerView + adapter | ✅ List + ForEach | ✅ |
 | Search | ✅ TextWatcher | ✅ TextInput.onChange | ✅ |
 | Type filter (All/Video/Audio) | ✅ 3 buttons | ✅ 3 Text buttons | ✅ |
-| Group by folder toggle | ✅ | ❌ Missing | 🟡 |
+| Group by folder toggle | ✅ | ✅ Expandable list | ✅ |
 | "Play All" button | ✅ | ✅ | ✅ |
-| Empty state hint | ✅ | ❌ Missing | 🟡 |
-| Thumbnail loading (Coil) | ✅ | ❌ Missing | 🔴 |
-| Dark mode | ✅ values-night | ❌ Missing | 🔴 |
+| Empty state hint | ✅ | ✅ | ✅ |
+| Thumbnail loading (Coil) | ✅ | ✅ Image component | ✅ |
+| Dark mode | ✅ values-night | ✅ resources-dark | ✅ |
 | **Playback** | | | |
 | ExoPlayer / AVPlayer | ✅ ExoPlayer | ✅ AVPlayer | ✅ |
 | Queue playback (setMediaItems) | ✅ setMediaItems | ✅ Manual playNext | ✅ |
@@ -26,11 +26,12 @@
 | **Player Page** | | | |
 | Separate PlayerActivity | ✅ | ✅ Player.ets | ✅ |
 | Queue panel (BottomSheet) | ✅ | ✅ Inline list | ✅ |
-| Cast to other devices | ✅ | ❌ Missing | 🔴 |
-| Network monitoring | ✅ NetworkMonitor | ❌ Missing | 🔴 |
+| Cast to other devices | ✅ | ✅ sendCastCommand | ✅ |
+| Network monitoring | ✅ NetworkMonitor | ✅ NetworkMonitor | ✅ |
+| Network error handling | ✅ | ✅ | ✅ |
 | **Favorites** | | | |
 | Favorite devices | ✅ | ✅ | ✅ |
-| Alias dialog | ✅ | ❌ Missing | 🟡 |
+| Alias dialog | ✅ | ✅ | ✅ |
 | Auto-connect favorites | ✅ tryConnectFavorites | ✅ | ✅ |
 
 ## Summary
@@ -38,15 +39,9 @@
 | Category | Total | Aligned | Missing |
 |----------|-------|---------|---------|
 | Core | 4 | 4 | 0 |
-| UI | 10 | 7 | 3 |
-| Player | 7 | 6 | 1 |
-| Favorites | 3 | 2 | 1 |
-| **Total** | **24** | **19** | **5** |
+| UI | 10 | 10 | 0 |
+| Player | 8 | 8 | 0 |
+| Favorites | 3 | 3 | 0 |
+| **Total** | **25** | **25** | **0** |
 
-## Remaining Gaps to Close
-
-1. 🔴 **Thumbnail loading** - Use ImageKit or_PICTURE_DATA to load thumbnails
-2. 🔴 **Dark mode** - Add resources-dark
-3. 🔴 **Cast to other devices** - Implement cast command via HTTP
-4. 🟡 **Group by folder** - Add folder grouping UI
-5. 🟡 **Empty state hint** - Add empty state text
+## All Features Aligned ✅
