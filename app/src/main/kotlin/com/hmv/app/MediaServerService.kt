@@ -62,6 +62,15 @@ class MediaServerService : Service() {
     private fun startServer() {
         val repo = ContentMediaRepository(this, items)
         val s = HttpRangeServer(repo)
+        s.onPlayCommand = { mediaId, title, position ->
+            // 收到投屏指令，发送广播通知 PlayerActivity
+            val intent = Intent(ACTION_CAST_PLAY).apply {
+                putExtra(EXTRA_CAST_MEDIA_ID, mediaId)
+                putExtra(EXTRA_CAST_TITLE, title)
+                putExtra(EXTRA_CAST_POSITION, position)
+            }
+            sendBroadcast(intent)
+        }
         s.start()
         server = s
         startForeground(NOTIFICATION_ID, buildNotification(s.port))
@@ -138,5 +147,10 @@ class MediaServerService : Service() {
         const val EXTRA_ITEMS = "extra_items"
         const val CHANNEL_ID = "media_server_channel"
         const val NOTIFICATION_ID = 1
+
+        const val ACTION_CAST_PLAY = "com.hmv.app.CAST_PLAY"
+        const val EXTRA_CAST_MEDIA_ID = "extra_cast_media_id"
+        const val EXTRA_CAST_TITLE = "extra_cast_title"
+        const val EXTRA_CAST_POSITION = "extra_cast_position"
     }
 }
