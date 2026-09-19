@@ -149,7 +149,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (urls.isNotEmpty()) {
-            startActivity(PlayerActivity.createIntent(this, urls, titles, ids, startIndex))
+            val devices = deviceAdapter.getDevices()
+            startActivity(PlayerActivity.createIntent(this, urls, titles, ids, startIndex, devices))
         }
     }
 
