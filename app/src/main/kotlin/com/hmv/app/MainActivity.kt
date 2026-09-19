@@ -255,11 +255,18 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startDeviceDiscovery() {
+        // 尝试直连收藏设备（跳过 mDNS 等待）
+        tryConnectFavorites()
+
         nsdHelper = NsdHelper(this)
         nsdHelper?.startDiscovery(object : NsdHelper.DeviceListener {
             override fun onDeviceFound(device: NsdHelper.DiscoveredDevice) {
                 runOnUiThread {
                     deviceAdapter.addDevice(device)
+                    // 更新收藏设备的 IP:Port
+                    if (favoritesManager.isFavorite(device.name)) {
+                        favoritesManager.updateDeviceAddress(device.name, device.host, device.port)
+                    }
                 }
             }
 
@@ -281,6 +288,40 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         })
+    }
+
+    private fun tryConnectFavorites() {
+        val favorites = favoritesManager.getFavorites()
+        if (favorites.isEmpty()) return
+
+        Thread {
+            for (fav in favorites) {
+                try {
+                    // 尝试直连收藏设备
+                    val url = java.net.URL("http://${fav.host}:${fav.port}/media")
+                    val conn = url.openConnection() as java.net.HttpURLConnection
+                    conn.connectTimeout = 3000
+                    conn.readTimeout = 3000
+                    conn.requestMethod = "HEAD"
+
+                    if (conn.responseCode == 200) {
+                        // 连接成功，添加到设备列表
+                        val device = NsdHelper.DiscoveredDevice(
+                            name = fav.name,
+                            host = fav.host,
+                            port = fav.port,
+                            serviceInfo = android.net.nsd.NsdServiceInfo()
+                        )
+                        runOnUiThread {
+                            deviceAdapter.addDevice(device)
+                        }
+                    }
+                    conn.disconnect()
+                } catch (_: Exception) {
+                    // 连接失败，等待 mDNS 发现
+                }
+            }
+        }.start()
     }
 
     private fun onMediaClicked(item: MediaItem) {
