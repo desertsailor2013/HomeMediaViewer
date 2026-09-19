@@ -40,6 +40,8 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var errorView: TextView
     private lateinit var fullscreenBtn: ImageButton
     private lateinit var queueInfo: TextView
+    private lateinit var speedBtn: ImageButton
+    private lateinit var speedLabel: TextView
 
     private var urls: List<String> = emptyList()
     private var titles: List<String> = emptyList()
@@ -50,6 +52,9 @@ class PlayerActivity : AppCompatActivity() {
     private var isRemotePlayback = false
     private var networkMonitor: NetworkMonitor? = null
     private var isNetworkLost = false
+
+    private val speedOptions = floatArrayOf(0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f)
+    private var currentSpeedIndex = 2 // 默认 1.0x
 
     private val castReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -71,6 +76,10 @@ class PlayerActivity : AppCompatActivity() {
         errorView = findViewById(R.id.error_view)
         fullscreenBtn = findViewById(R.id.btn_fullscreen)
         queueInfo = findViewById(R.id.queue_info)
+        speedBtn = findViewById(R.id.btn_speed)
+        speedLabel = findViewById(R.id.speed_label)
+
+        speedBtn.setOnClickListener { cycleSpeed() }
 
         // 解析传入的媒体列表
         urls = intent.getStringArrayListExtra(EXTRA_URLS) ?: run {
@@ -209,6 +218,17 @@ class PlayerActivity : AppCompatActivity() {
             // 队列中没有该媒体，提示
             Toast.makeText(this, getString(R.string.cast_not_found, title), Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private fun cycleSpeed() {
+        currentSpeedIndex = (currentSpeedIndex + 1) % speedOptions.size
+        val speed = speedOptions[currentSpeedIndex]
+        player?.setPlaybackSpeed(speed)
+        updateSpeedLabel()
+    }
+
+    private fun updateSpeedLabel() {
+        speedLabel.text = "${speedOptions[currentSpeedIndex]}x"
     }
 
     private fun startNetworkMonitor() {

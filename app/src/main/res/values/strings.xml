@@ -45,4 +45,5 @@
     <string name="cast_playing">正在播放：%1$s</string>
     <string name="cast_not_found">未找到媒体：%1$s</string>
     <string name="cast_to">投屏到</string>
+    <string name="speed">播放速度</string>
 </resources>
