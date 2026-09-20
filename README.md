@@ -453,18 +453,22 @@ http-server -p 8000 -c-1
 | `READ_MEDIA_VIDEO` / `READ_MEDIA_AUDIO` | API 33+ 媒体文件读取 |
 | `READ_EXTERNAL_STORAGE` | API ≤ 32 媒体文件读取 |
 | `FOREGROUND_SERVICE` | HTTP 服务后台常驻 |
+| `FOREGROUND_SERVICE_DATA_SYNC` | 数据同步前台服务 |
 
 ### iOS
 | 权限 | 用途 |
 |------|------|
 | `NSPhotoLibraryUsageDescription` | 访问相册媒体文件 |
 | `NSLocalNetworkUsageDescription` | 局域网通信 |
+| `NSBonjourServices` | mDNS 服务发现（`_hmv._tcp`） |
 
 ### HarmonyOS
 | 权限 | 用途 | 声明方式 |
 |------|------|----------|
 | `ohos.permission.INTERNET` | 网络通信 | module.json5 静态声明 |
 | `ohos.permission.READ_MEDIA` | 读取媒体文件 | 运行时动态请求 |
+| `ohos.permission.GET_NETWORK_INFO` | 获取网络状态 | module.json5 静态声明 |
+| `ohos.permission.SET_NETWORK_INFO` | 设置网络配置 | module.json5 静态声明 |
 
 ## 安全特性
 
