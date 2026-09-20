@@ -173,7 +173,82 @@ interface MediaRepository {
 
     /** 清空日志。 */
     fun clearLogs() {}
+
+    // ========== 用户权限管理 ==========
+
+    /** 获取用户列表。 */
+    fun getUsers(): List<UserInfo> = emptyList()
+
+    /** 添加用户。 */
+    fun addUser(username: String, password: String, role: String): FileOperationResult =
+        FileOperationResult(false, "not supported")
+
+    /** 删除用户。 */
+    fun deleteUser(username: String): FileOperationResult =
+        FileOperationResult(false, "not supported")
+
+    /** 更新用户角色。 */
+    fun updateUserRole(username: String, role: String): FileOperationResult =
+        FileOperationResult(false, "not supported")
+
+    /** 验证用户登录。 */
+    fun verifyUser(username: String, password: String): UserInfo? = null
+
+    /** 检查用户权限。 */
+    fun checkPermission(username: String, permission: String): Boolean = false
+
+    /** 获取媒体元数据。 */
+    fun getMediaMetadata(mediaId: String): MediaMetadata? = null
+
+    /** 搜索媒体（支持全局搜索）。 */
+    fun searchMedia(query: String, filters: SearchFilters = SearchFilters()): List<MediaItem> = list()
 }
+
+/**
+ * 用户信息
+ */
+data class UserInfo(
+    val username: String,
+    val role: String,
+    val createdAt: Long = System.currentTimeMillis(),
+    val lastLogin: Long = 0
+) : java.io.Serializable
+
+/**
+ * 媒体元数据
+ */
+data class MediaMetadata(
+    val mediaId: String,
+    val title: String = "",
+    val artist: String = "",
+    val album: String = "",
+    val duration: Long = 0,
+    val width: Int = 0,
+    val height: Int = 0,
+    val bitrate: Int = 0,
+    val codec: String = "",
+    val format: String = "",
+    val thumbnailUrl: String? = null,
+    val posterUrl: String? = null,
+    val subtitleUrls: List<String> = emptyList(),
+    val tags: List<String> = emptyList(),
+    val addedAt: Long = System.currentTimeMillis(),
+    val lastPlayed: Long = 0,
+    val playCount: Int = 0
+) : java.io.Serializable
+
+/**
+ * 搜索过滤器
+ */
+data class SearchFilters(
+    val type: String = "all",
+    val minSize: Long = 0,
+    val maxSize: Long = Long.MAX_VALUE,
+    val startDate: Long = 0,
+    val endDate: Long = Long.MAX_VALUE,
+    val folder: String = "",
+    val tags: List<String> = emptyList()
+) : java.io.Serializable
 
 /**
  * 运行时统计信息

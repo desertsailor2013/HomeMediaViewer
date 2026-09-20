@@ -112,10 +112,13 @@ class HttpRangeServer(
                     request.method == "POST" && request.path.matches(PROXY_PATTERN) && request.path.endsWith("/operation") -> handleProxyOperation(out, request)
                     request.method == "POST" && request.path == "/device/info" -> handleSetDeviceInfo(out, request)
                     request.method == "POST" && request.path == "/logs/clear" -> handleClearLogs(out, request)
+                    request.method == "POST" && request.path == "/users" -> handleAddUser(out, request)
+                    request.method == "POST" && request.path == "/users/login" -> handleUserLogin(out, request)
 
                     // DELETE 端点
                     request.method == "DELETE" && request.path.startsWith("/media/") -> handleDelete(out, request)
                     request.method == "DELETE" && request.path.matches(SCAN_PATH_PATTERN) -> handleRemoveScanPath(out, request)
+                    request.method == "DELETE" && request.path.startsWith("/users/") -> handleDeleteUser(out, request)
 
                     // GET 端点
                     request.path == "/media" || request.path == "/media/" -> handleList(out, request)
@@ -126,6 +129,9 @@ class HttpRangeServer(
                     request.path == "/stats/runtime" -> handleGetRuntimeStats(out, request)
                     request.path == "/stats/traffic" -> handleGetTrafficStats(out, request)
                     request.path.startsWith("/logs") -> handleGetLogs(out, request)
+                    request.path == "/users" -> handleGetUsers(out, request)
+                    request.path.startsWith("/media/") && request.path.endsWith("/metadata") -> handleGetMediaMetadata(out, request)
+                    request.path == "/search" -> handleSearchMedia(out, request)
                     request.path.matches(THUMBNAIL_PATTERN) -> handleThumbnail(out, request)
                     request.path.startsWith("/media/") -> handleStream(out, bufferSize, request)
                     else -> writeStatus(out, STATUS_NOT_FOUND)
@@ -795,6 +801,158 @@ class HttpRangeServer(
     private fun handleClearLogs(out: OutputStream, request: HttpRequest) {
         repository.clearLogs()
         val response = """{"status":"ok"}"""
+        writeResponse(out, STATUS_OK, MIME_JSON, response.toByteArray().size.toLong(), response.toByteArray())
+    }
+
+    // ---------- 用户权限管理 ----------
+
+    private fun handleGetUsers(out: OutputStream, request: HttpRequest) {
+        val users = repository.getUsers()
+        val sb = StringBuilder("[")
+        users.forEachIndexed { i, user ->
+            if (i > 0) sb.append(',')
+            sb.append('{')
+            sb.append("\"username\":\"${escapeJson(user.username)}\",")
+            sb.append("\"role\":\"${escapeJson(user.role)}\",")
+            sb.append("\"createdAt\":${user.createdAt},")
+            sb.append("\"lastLogin\":${user.lastLogin}")
+            sb.append('}')
+        }
+        sb.append(']')
+        val response = sb.toString()
+        writeResponse(out, STATUS_OK, MIME_JSON, response.toByteArray().size.toLong(), response.toByteArray())
+    }
+
+    private fun handleAddUser(out: OutputStream, request: HttpRequest) {
+        val username = extractJsonString(request.body, "username") ?: ""
+        val password = extractJsonString(request.body, "password") ?: ""
+        val role = extractJsonString(request.body, "role") ?: "viewer"
+
+        if (username.isEmpty() || password.isEmpty()) {
+            writeStatus(out, STATUS_BAD_REQUEST)
+            return
+        }
+
+        val result = repository.addUser(username, password, role)
+        if (result.success) {
+            val response = """{"status":"ok","message":"${escapeJson(result.message)}"}"""
+            writeResponse(out, STATUS_CREATED, MIME_JSON, response.toByteArray().size.toLong(), response.toByteArray())
+        } else {
+            val response = """{"status":"error","message":"${escapeJson(result.message)}"}"""
+            writeResponse(out, STATUS_BAD_REQUEST, MIME_JSON, response.toByteArray().size.toLong(), response.toByteArray())
+        }
+    }
+
+    private fun handleDeleteUser(out: OutputStream, request: HttpRequest) {
+        val username = request.path.removePrefix("/users/")
+        if (username.isEmpty()) {
+            writeStatus(out, STATUS_BAD_REQUEST)
+            return
+        }
+
+        val result = repository.deleteUser(username)
+        if (result.success) {
+            val response = """{"status":"ok"}"""
+            writeResponse(out, STATUS_OK, MIME_JSON, response.toByteArray().size.toLong(), response.toByteArray())
+        } else {
+            writeStatus(out, STATUS_NOT_FOUND)
+        }
+    }
+
+    private fun handleUserLogin(out: OutputStream, request: HttpRequest) {
+        val username = extractJsonString(request.body, "username") ?: ""
+        val password = extractJsonString(request.body, "password") ?: ""
+
+        if (username.isEmpty() || password.isEmpty()) {
+            writeStatus(out, STATUS_BAD_REQUEST)
+            return
+        }
+
+        val user = repository.verifyUser(username, password)
+        if (user != null) {
+            val response = buildString {
+                append('{')
+                append("\"status\":\"ok\",")
+                append("\"username\":\"${escapeJson(user.username)}\",")
+                append("\"role\":\"${escapeJson(user.role)}\"")
+                append('}')
+            }
+            writeResponse(out, STATUS_OK, MIME_JSON, response.toByteArray().size.toLong(), response.toByteArray())
+        } else {
+            val response = """{"status":"error","message":"Invalid credentials"}"""
+            writeResponse(out, STATUS_UNAUTHORIZED, MIME_JSON, response.toByteArray().size.toLong(), response.toByteArray())
+        }
+    }
+
+    // ---------- 媒体元数据 ----------
+
+    private fun handleGetMediaMetadata(out: OutputStream, request: HttpRequest) {
+        val mediaId = request.path.removePrefix("/media/").removeSuffix("/metadata")
+        if (mediaId.isEmpty()) {
+            writeStatus(out, STATUS_NOT_FOUND)
+            return
+        }
+
+        val metadata = repository.getMediaMetadata(mediaId)
+        if (metadata != null) {
+            val response = buildString {
+                append('{')
+                append("\"mediaId\":\"${escapeJson(metadata.mediaId)}\",")
+                append("\"title\":\"${escapeJson(metadata.title)}\",")
+                append("\"artist\":\"${escapeJson(metadata.artist)}\",")
+                append("\"album\":\"${escapeJson(metadata.album)}\",")
+                append("\"duration\":${metadata.duration},")
+                append("\"width\":${metadata.width},")
+                append("\"height\":${metadata.height},")
+                append("\"bitrate\":${metadata.bitrate},")
+                append("\"codec\":\"${escapeJson(metadata.codec)}\",")
+                append("\"format\":\"${escapeJson(metadata.format)}\",")
+                if (metadata.thumbnailUrl != null) {
+                    append("\"thumbnailUrl\":\"${escapeJson(metadata.thumbnailUrl)}\",")
+                }
+                if (metadata.posterUrl != null) {
+                    append("\"posterUrl\":\"${escapeJson(metadata.posterUrl)}\",")
+                }
+                append("\"subtitleUrls\":[${metadata.subtitleUrls.joinToString(",") { "\"${escapeJson(it)}\"" }}],")
+                append("\"tags\":[${metadata.tags.joinToString(",") { "\"${escapeJson(it)}\"" }}],")
+                append("\"addedAt\":${metadata.addedAt},")
+                append("\"lastPlayed\":${metadata.lastPlayed},")
+                append("\"playCount\":${metadata.playCount}")
+                append('}')
+            }
+            writeResponse(out, STATUS_OK, MIME_JSON, response.toByteArray().size.toLong(), response.toByteArray())
+        } else {
+            writeStatus(out, STATUS_NOT_FOUND)
+        }
+    }
+
+    // ---------- 全局搜索 ----------
+
+    private fun handleSearchMedia(out: OutputStream, request: HttpRequest) {
+        val query = request.queryParams["q"] ?: ""
+        val type = request.queryParams["type"] ?: "all"
+        val folder = request.queryParams["folder"] ?: ""
+
+        val filters = SearchFilters(type = type, folder = folder)
+        val results = repository.searchMedia(query, filters)
+
+        val sb = StringBuilder("[")
+        results.forEachIndexed { i, m ->
+            if (i > 0) sb.append(',')
+            sb.append('{')
+            sb.append("\"id\":\"${escapeJson(m.id)}\",")
+            sb.append("\"title\":\"${escapeJson(m.title)}\",")
+            sb.append("\"mimeType\":\"${escapeJson(m.mimeType)}\",")
+            sb.append("\"size\":${m.size},")
+            sb.append("\"path\":\"${escapeJson(m.relativePath)}\",")
+            if (m.thumbnailUri != null) {
+                sb.append(",\"thumbnail\":\"${escapeJson(m.thumbnailUri)}\"")
+            }
+            sb.append(",\"folderName\":\"${escapeJson(m.folderName)}\"")
+            sb.append('}')
+        }
+        sb.append(']')
+        val response = sb.toString()
         writeResponse(out, STATUS_OK, MIME_JSON, response.toByteArray().size.toLong(), response.toByteArray())
     }
 

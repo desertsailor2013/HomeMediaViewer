@@ -28,6 +28,9 @@ const App = {
         ExportImport.init();
         NodeManager.init();
         NodeStats.init();
+        UserManager.init();
+        SearchEnhanced.init();
+        MediaMetadata.init();
         this.setupNavigation();
         this.setupToolbar();
         this.setupTheme();

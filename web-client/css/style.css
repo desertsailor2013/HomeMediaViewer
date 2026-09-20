@@ -2058,3 +2058,249 @@ body {
 .log-debug .log-level {
     color: var(--text-secondary);
 }
+
+/* ========== 用户管理 ========== */
+.login-form, .add-user-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.login-form input, .add-user-form input, .add-user-form select {
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 14px;
+}
+
+.login-form input:focus, .add-user-form input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.user-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.user-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background: var(--bg-secondary);
+    border-radius: var(--radius);
+    margin-bottom: 8px;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.user-name {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.user-role {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.badge-admin {
+    background: var(--danger);
+    color: white;
+}
+
+.badge-editor {
+    background: var(--accent);
+    color: white;
+}
+
+.badge-viewer {
+    background: var(--text-secondary);
+    color: white;
+}
+
+.user-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.role-select {
+    padding: 4px 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+/* ========== 搜索增强 ========== */
+.search-panel {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 0 0 var(--radius) var(--radius);
+    box-shadow: 0 4px 12px var(--shadow);
+    z-index: 100;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.search-history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.btn-clear-history {
+    background: none;
+    border: none;
+    color: var(--danger);
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.search-history-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-primary);
+}
+
+.search-history-item:hover {
+    background: var(--bg-secondary);
+}
+
+.search-suggestions {
+    border-top: 1px solid var(--border);
+}
+
+.search-suggestion-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+}
+
+.search-suggestion-item:hover {
+    background: var(--bg-secondary);
+}
+
+.suggestion-icon {
+    font-size: 16px;
+}
+
+.suggestion-title {
+    flex: 1;
+    font-size: 13px;
+    color: var(--text-primary);
+}
+
+.suggestion-folder {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+/* ========== 媒体信息 ========== */
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.info-item label {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.info-item span {
+    font-size: 14px;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.info-tags, .info-subtitles {
+    margin-top: 12px;
+}
+
+.info-tags label, .info-subtitles label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.tags-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.tag {
+    padding: 4px 8px;
+    background: var(--accent);
+    color: white;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.subtitle-list {
+    background: var(--bg-secondary);
+    border-radius: var(--radius);
+}
+
+.subtitle-item {
+    padding: 8px 12px;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+}
+
+.subtitle-item:last-child {
+    border-bottom: none;
+}
+
+.media-poster {
+    text-align: center;
+    margin-bottom: 16px;
+}
+
+.media-poster img {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: var(--radius);
+}
+
+/* ========== 高级搜索 ========== */
+.adv-search-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.adv-search-form input, .adv-search-form select {
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 14px;
+}
