@@ -59,6 +59,7 @@
 - **MediaStore 媒体扫描** — 自动扫描设备中的视频和音频文件（API 33+ 适配）
 - **ExoPlayer 播放** — 基于 Media3 ExoPlayer，支持 HTTP 流播放
 - **前台 Service** — HTTP 服务绑定前台 Service，后台运行不被系统回收
+- **平板双栏布局** — `layout-sw600dp` 自适应，大屏设备左侧列表+右侧播放器
 
 ### iOS 端专属
 - **PHPhotoLibrary 媒体扫描** — 本地视频/音频扫描
@@ -91,11 +92,14 @@
 │       ├── RangeParser.kt       HTTP Range 头解析
 │       └── RangeReadable.kt     可 seek 只读源接口
 ├── app/                         Android Phone 端
-│   └── src/main/kotlin/com/hmv/app/
-│       ├── MainActivity.kt      主界面（单栏/双栏自适应）
-│       ├── PlayerActivity.kt    ExoPlayer 播放页
-│       ├── MediaServerService.kt 前台 Service
-│       └── ...                  其他组件
+│   ├── src/main/kotlin/com/hmv/app/
+│   │   ├── MainActivity.kt      主界面（单栏/双栏自适应）
+│   │   ├── PlayerActivity.kt    ExoPlayer 播放页
+│   │   ├── MediaServerService.kt 前台 Service
+│   │   └── ...                  其他组件
+│   └── src/main/res/
+│       ├── layout/              手机布局
+│       └── layout-sw600dp/      平板双栏布局
 ├── web-client/                  Web 端（18 页面 + 4 语言）
 │   ├── js/
 │   │   ├── app.js               主应用模块
