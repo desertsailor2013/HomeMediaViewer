@@ -5,7 +5,7 @@
 **平台角色说明：**
 - **Android** — 既可提供媒体服务（HTTP Server），也可浏览其他设备
 - **iOS** — 既可提供媒体服务（HTTP Server），也可浏览其他设备
-- **鸿蒙** — 仅客户端（浏览其他设备），不提供媒体服务
+- **鸿蒙** — 既可提供媒体服务（HTTP Server），也可浏览其他设备
 - **Web** — 浏览其他设备（依赖其他设备的 HTTP Server）
 
 ## 功能特性
@@ -72,11 +72,12 @@
 - **AVPlayer 播放** — 原生播放器 + AirPlay 投屏
 - **SwiftUI 界面** — 现代化声明式 UI
 
-### 鸿蒙端专属（仅客户端）
+### 鸿蒙端专属
 - **MediaKit 媒体扫描** — PhotoAccessHelper 本地媒体访问
 - **AVPlayer 播放** — 原生播放器 + Cast 投屏
 - **ArkTS 声明式 UI** — ArkUI 组件化界面
-- **无 HTTP Server** — 鸿蒙端不提供媒体服务，仅浏览其他设备
+- **HTTP Server** — 基于原生 Socket API 的流媒体服务
+- **mDNS 服务注册** — 自动注册到局域网供其他设备发现
 
 ## 技术栈
 
