@@ -1365,3 +1365,291 @@ body {
     outline: none;
     border-color: var(--accent);
 }
+
+/* ========== 扫描路径管理 ========== */
+.scan-paths-container {
+    margin-bottom: 12px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.scan-path-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--bg-secondary);
+    border-radius: var(--radius);
+    margin-bottom: 8px;
+}
+
+.scan-path-icon {
+    font-size: 16px;
+    color: var(--accent);
+}
+
+.scan-path-text {
+    flex: 1;
+    font-size: 13px;
+    color: var(--text-primary);
+    word-break: break-all;
+}
+
+.btn-remove-scan-path {
+    background: none;
+    border: none;
+    color: var(--danger);
+    cursor: pointer;
+    font-size: 18px;
+    padding: 0 4px;
+    line-height: 1;
+}
+
+.btn-remove-scan-path:hover {
+    color: var(--danger);
+    opacity: 0.7;
+}
+
+.scan-path-add {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.scan-path-add input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 13px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.scan-path-add input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.scan-path-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.setting-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+}
+
+/* ========== 移动端APP横幅 ========== */
+.mobile-app-banner {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--bg-primary);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -2px 10px var(--shadow);
+    z-index: 1000;
+    padding: 12px 16px;
+}
+
+.app-banner-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.app-banner-icon {
+    font-size: 32px;
+    flex-shrink: 0;
+}
+
+.app-banner-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.app-banner-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.app-banner-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+
+.app-banner-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.btn-open-app {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.btn-open-app:hover {
+    background: var(--accent-hover);
+}
+
+.btn-install-app {
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 8px 16px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.btn-install-app:hover {
+    background: var(--bg-secondary);
+}
+
+.btn-close-banner {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 20px;
+    padding: 4px 8px;
+    cursor: pointer;
+}
+
+.btn-close-banner:hover {
+    color: var(--text-primary);
+}
+
+/* ========== APP安装弹窗 ========== */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 20px;
+}
+
+.modal-content {
+    background: var(--bg-primary);
+    border-radius: 12px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 4px 20px var(--shadow);
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.modal-header h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+}
+
+.modal-close:hover {
+    color: var(--text-primary);
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.modal-body p {
+    font-size: 14px;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+}
+
+.modal-body ul {
+    list-style: none;
+    padding: 0;
+    margin: 16px 0;
+}
+
+.modal-body li {
+    font-size: 13px;
+    color: var(--text-secondary);
+    padding: 6px 0;
+    padding-left: 20px;
+    position: relative;
+}
+
+.modal-body li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: var(--success);
+}
+
+.modal-footer {
+    display: flex;
+    gap: 12px;
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+    justify-content: flex-end;
+}
+
+.modal-footer .btn-secondary {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: none;
+    padding: 10px 20px;
+    border-radius: var(--radius);
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.modal-footer .btn-primary {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: var(--radius);
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.modal-footer .btn-primary:hover {
+    background: var(--accent-hover);
+}
+
+.app-install-icon {
+    font-size: 64px;
+    text-align: center;
+    margin-bottom: 16px;
+}

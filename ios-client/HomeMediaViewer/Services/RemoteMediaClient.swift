@@ -1,5 +1,12 @@
 import Foundation
 
+/// 文件操作结果
+struct FileOperationResult: Codable {
+    let success: Bool
+    let message: String?
+    let id: String?
+}
+
 /// 远程媒体客户端 - 连接 core-server HTTP API
 class RemoteMediaClient {
     private let timeout: TimeInterval = 5.0
@@ -80,6 +87,132 @@ class RemoteMediaClient {
             return httpResponse.statusCode == 200
         } catch {
             return false
+        }
+    }
+    
+    // MARK: - File Management API
+    
+    /// 上传文件
+    func uploadFile(
+        deviceAddress: String,
+        fileData: Data,
+        fileName: String,
+        path: String = "/"
+    ) async -> FileOperationResult {
+        guard let url = URL(string: "\(deviceAddress)/upload") else {
+            return FileOperationResult(success: false, message: "Invalid URL", id: nil)
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 30.0
+        
+        let boundary = "Boundary-\(UUID().uuidString)"
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        
+        var body = Data()
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"file\"; filename=\"\(fileName)\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: application/octet-stream\r\n\r\n".data(using: .utf8)!)
+        body.append(fileData)
+        body.append("\r\n--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"path\"\r\n\r\n".data(using: .utf8)!)
+        body.append("\(path)\r\n".data(using: .utf8)!)
+        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
+        
+        request.httpBody = body
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200 else {
+                return FileOperationResult(success: false, message: "HTTP Error", id: nil)
+            }
+            return try JSONDecoder().decode(FileOperationResult.self, from: data)
+        } catch {
+            return FileOperationResult(success: false, message: error.localizedDescription, id: nil)
+        }
+    }
+    
+    /// 删除文件
+    func deleteFile(deviceAddress: String, mediaId: String) async -> FileOperationResult {
+        guard let url = URL(string: "\(deviceAddress)/media/\(mediaId)") else {
+            return FileOperationResult(success: false, message: "Invalid URL", id: nil)
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        request.timeoutInterval = timeout
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200 else {
+                return FileOperationResult(success: false, message: "HTTP Error", id: nil)
+            }
+            return try JSONDecoder().decode(FileOperationResult.self, from: data)
+        } catch {
+            return FileOperationResult(success: false, message: error.localizedDescription, id: nil)
+        }
+    }
+    
+    /// 重命名文件
+    func renameFile(
+        deviceAddress: String,
+        mediaId: String,
+        newName: String
+    ) async -> FileOperationResult {
+        guard let url = URL(string: "\(deviceAddress)/media/\(mediaId)/rename") else {
+            return FileOperationResult(success: false, message: "Invalid URL", id: nil)
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = timeout
+        
+        let body: [String: Any] = ["name": newName]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200 else {
+                return FileOperationResult(success: false, message: "HTTP Error", id: nil)
+            }
+            return try JSONDecoder().decode(FileOperationResult.self, from: data)
+        } catch {
+            return FileOperationResult(success: false, message: error.localizedDescription, id: nil)
+        }
+    }
+    
+    /// 新建文件夹
+    func createFolder(
+        deviceAddress: String,
+        name: String,
+        parentPath: String = "/"
+    ) async -> FileOperationResult {
+        guard let url = URL(string: "\(deviceAddress)/folder") else {
+            return FileOperationResult(success: false, message: "Invalid URL", id: nil)
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = timeout
+        
+        let body: [String: Any] = ["name": name, "path": parentPath]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200 else {
+                return FileOperationResult(success: false, message: "HTTP Error", id: nil)
+            }
+            return try JSONDecoder().decode(FileOperationResult.self, from: data)
+        } catch {
+            return FileOperationResult(success: false, message: error.localizedDescription, id: nil)
         }
     }
 }

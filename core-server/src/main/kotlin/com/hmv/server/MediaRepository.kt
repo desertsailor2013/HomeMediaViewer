@@ -91,4 +91,21 @@ interface MediaRepository {
     /** 创建文件夹。 */
     fun createFolder(name: String, parentPath: String): FileOperationResult =
         FileOperationResult(false, "not supported")
+
+    // ========== 扫描路径管理（PC 端支持） ==========
+
+    /** 获取当前扫描路径列表。 */
+    fun getScanPaths(): List<String> = emptyList()
+
+    /** 添加扫描路径。 */
+    fun addScanPath(path: String): FileOperationResult =
+        FileOperationResult(false, "not supported")
+
+    /** 移除扫描路径。 */
+    fun removeScanPath(path: String): FileOperationResult =
+        FileOperationResult(false, "not supported")
+
+    /** 重新扫描所有路径。 */
+    fun rescanAll(): FileOperationResult =
+        FileOperationResult(false, "not supported")
 }

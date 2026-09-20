@@ -114,6 +114,21 @@ struct ContentView: View {
                     .padding(.vertical, 8)
                 }
                 
+                // 文件管理按钮
+                if viewModel.isConnected {
+                    NavigationLink(destination: FileManagerView(deviceAddress: viewModel.deviceAddress)) {
+                        Label("文件管理", systemImage: "folder")
+                            .font(.subheadline)
+                            .foregroundColor(.blue)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 44)
+                            .background(Color(.systemGray6))
+                            .cornerRadius(8)
+                    }
+                    .padding(.horizontal)
+                    .padding(.bottom, 8)
+                }
+                
                 // 媒体列表
                 List {
                     if viewModel.isGroupByFolder {
