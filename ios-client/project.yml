@@ -1,0 +1,31 @@
+name: HomeMediaViewer
+options:
+  bundleIdPrefix: com.hmv
+  deploymentTarget:
+    iOS: "16.0"
+  xcodeVersion: "15.0"
+  
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    TARGETED_DEVICE_FAMILY: "1"
+    INFOPLIST_KEY_UIApplicationSceneManifest_Generation: true
+    INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: true
+    INFOPLIST_KEY_UILaunchScreen_Generation: true
+    INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+    INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+    ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+    
+targets:
+  - name: HomeMediaViewer
+    type: application
+    platform: iOS
+    sources:
+      - path: HomeMediaViewer
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.hmv.HomeMediaViewer
+        INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "需要访问照片库以扫描本地媒体文件"
+        INFOPLIST_KEY_NSLocalNetworkUsageDescription: "需要访问本地网络以连接其他设备"
+        INFOPLIST_KEY_NSBonjourServices: "_hmv._tcp"

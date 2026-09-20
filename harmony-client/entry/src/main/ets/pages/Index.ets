@@ -37,6 +37,13 @@ struct Index {
   }
 
   private async startServerAsync(): Promise<void> {
+    this.status = '正在请求权限...';
+    let authorized = await this.scanner.requestAuthorization();
+    if (!authorized) {
+      this.status = '需要媒体权限才能扫描本地媒体';
+      return;
+    }
+
     this.status = '正在扫描媒体...';
     let items = await this.scanner.scanAll();
     this.mediaItems = items;

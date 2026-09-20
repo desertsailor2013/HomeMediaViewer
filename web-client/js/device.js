@@ -7,6 +7,7 @@ const Device = {
     currentPort: 0,
     isConnected: false,
     statusEl: null,
+    favorites: [],
 
     /**
      * 初始化设备模块
@@ -22,8 +23,12 @@ const Device = {
             if (e.key === 'Enter') this.connect();
         });
 
-        // 加载上次连接
+        // 加载收藏和上次连接
+        this.loadFavorites();
         this.loadLastConnection();
+        
+        // 自动连接收藏设备
+        this.autoConnectFavorites();
     },
 
     /**
@@ -58,6 +63,27 @@ const Device = {
     },
 
     /**
+     * 自动连接收藏设备
+     */
+    async autoConnectFavorites() {
+        for (const fav of this.favorites) {
+            try {
+                await API.testConnection(fav.host, fav.port);
+                this.currentHost = fav.host;
+                this.currentPort = fav.port;
+                this.isConnected = true;
+                API.setServer(fav.host, fav.port);
+                this.setStatus(`已连接 ${fav.name || fav.host}:${fav.port}`, 'connected');
+                this.saveLastConnection();
+                App.onDeviceConnected();
+                return;
+            } catch (e) {
+                // 连接失败，尝试下一个
+            }
+        }
+    },
+
+    /**
      * 设置状态文本
      */
     setStatus(text, className) {
@@ -81,5 +107,49 @@ const Device = {
         const port = localStorage.getItem('hmv_last_port');
         if (host) document.getElementById('input-host').value = host;
         if (port) document.getElementById('input-port').value = port;
+    },
+
+    /**
+     * 加载收藏设备
+     */
+    loadFavorites() {
+        try {
+            const data = localStorage.getItem('hmv_favorites');
+            this.favorites = data ? JSON.parse(data) : [];
+        } catch (e) {
+            this.favorites = [];
+        }
+    },
+
+    /**
+     * 保存收藏设备
+     */
+    saveFavorites() {
+        localStorage.setItem('hmv_favorites', JSON.stringify(this.favorites));
+    },
+
+    /**
+     * 添加收藏
+     */
+    addFavorite(name, host, port) {
+        if (!this.isFavorite(host, port)) {
+            this.favorites.push({ name, host, port });
+            this.saveFavorites();
+        }
+    },
+
+    /**
+     * 移除收藏
+     */
+    removeFavorite(host, port) {
+        this.favorites = this.favorites.filter(f => !(f.host === host && f.port === port));
+        this.saveFavorites();
+    },
+
+    /**
+     * 检查是否已收藏
+     */
+    isFavorite(host, port) {
+        return this.favorites.some(f => f.host === host && f.port === port);
     }
 };

@@ -1,4 +1,5 @@
 import { photoAccessHelper } from '@kit.MediaLibraryKit';
+import { abilityAccessCtrl, common } from '@kit.AbilityKit';
 import { MediaItem } from '../model/MediaModels';
 
 const TAG = 'MediaScanner';
@@ -11,6 +12,24 @@ export class MediaScanner {
 
   constructor(context: Context) {
     this.context = context;
+  }
+
+  /**
+   * 请求媒体权限
+   */
+  async requestAuthorization(): Promise<boolean> {
+    try {
+      let atManager = abilityAccessCtrl.createAtManager();
+      let context = this.context as common.UIAbilityContext;
+      let result = await atManager.requestPermissionsFromUser(context, [
+        'ohos.permission.READ_MEDIA',
+        'ohos.permission.READ_IMAGEVIDEO'
+      ]);
+      return result.authResults.every((r: number) => r === 0);
+    } catch (err) {
+      console.error(TAG, `requestAuthorization failed: ${err}`);
+      return false;
+    }
   }
 
   /**
@@ -34,6 +53,13 @@ export class MediaScanner {
     let videos = await this.scanVideos();
     let audios = await this.scanAudios();
     return videos.concat(audios);
+  }
+
+  /**
+   * 获取缩略图 URI
+   */
+  getThumbnailUri(mediaId: string): string {
+    return `file://media/Photo/${mediaId}/thumbnail`;
   }
 
   /**
@@ -68,6 +94,7 @@ export class MediaScanner {
           item.relativePath = relativePath;
           item.mimeType = mimeType;
           item.size = size;
+          item.thumbnailUri = this.getThumbnailUri(id.toString());
           item.folderName = relativePath.split('/').slice(-2, -1).join('/') || '根目录';
 
           items.push(item);
