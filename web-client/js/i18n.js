@@ -1,0 +1,921 @@
+/**
+ * 多语言模块
+ * 功能：中/英/日/韩语言切换，UI 文本国际化
+ */
+const I18n = {
+    currentLang: 'zh-CN',
+
+    translations: {
+        'zh-CN': {
+            // 侧边栏导航
+            'nav.media': '媒体库',
+            'nav.devices': '设备列表',
+            'nav.favorites': '收藏设备',
+            'nav.queue': '播放队列',
+            'nav.history': '播放历史',
+            'nav.filemanager': '文件管理',
+            'nav.stats': '统计面板',
+            'nav.network': '网络诊断',
+            'nav.shortcuts': '快捷键',
+            'nav.i18n': '多语言',
+            'nav.export': '数据导出',
+            'nav.settings': '设置',
+            'nav.about': '关于',
+
+            // 通用
+            'common.connect': '连接',
+            'common.search': '搜索',
+            'common.clear': '清空',
+            'common.save': '保存',
+            'common.cancel': '取消',
+            'common.delete': '删除',
+            'common.upload': '上传',
+            'common.export': '导出',
+            'common.import': '导入',
+            'common.refresh': '刷新',
+            'common.send': '发送',
+            'common.add': '+ 添加',
+            'common.close': '关闭',
+            'common.confirm': '确定',
+            'common.back': '返回',
+            'common.next': '下一个',
+            'common.prev': '上一个',
+
+            // 主题
+            'theme.dark': '深色模式',
+            'theme.light': '浅色模式',
+
+            // 媒体库页面
+            'media.title': '媒体库',
+            'media.placeholder.host': '设备 IP',
+            'media.placeholder.port': '端口',
+            'media.filter.all': '全部',
+            'media.filter.video': '视频',
+            'media.filter.audio': '音频',
+            'media.group': '分组',
+            'media.empty': '请先连接设备',
+            'media.empty.search': '无匹配结果',
+            'media.search': '搜索文件名...',
+
+            // 设备列表页面
+            'devices.title': '已发现设备',
+            'devices.empty': '暂无设备',
+            'devices.current': '当前连接',
+            'devices.connect': '连接',
+
+            // 收藏设备页面
+            'favorites.title': '收藏设备',
+            'favorites.add': '+ 添加',
+            'favorites.empty': '暂无收藏设备',
+            'favorites.dialog.title': '添加收藏设备',
+            'favorites.dialog.name': '设备名称',
+            'favorites.dialog.host': '设备 IP',
+            'favorites.dialog.port': '端口',
+            'favorites.dialog.alias': '别名（可选）',
+
+            // 播放队列页面
+            'queue.title': '播放队列',
+            'queue.empty': '队列为空',
+            'queue.add': '添加到队列',
+
+            // 播放历史页面
+            'history.title': '播放历史',
+            'history.search': '搜索历史...',
+            'history.clear': '清空历史',
+            'history.empty': '暂无播放记录',
+
+            // 文件管理页面
+            'filemanager.title': '文件管理',
+            'filemanager.upload': '上传文件',
+            'filemanager.newfolder': '新建文件夹',
+            'filemanager.root': '根目录',
+            'filemanager.search': '搜索文件...',
+            'filemanager.empty': '暂无文件',
+            'filemanager.play': '播放',
+
+            // 统计面板页面
+            'stats.title': '统计面板',
+            'stats.playcount': '播放次数',
+            'stats.totaltime': '总播放时长',
+            'stats.totalsize': '已播放流量',
+            'stats.devicecount': '连接设备数',
+            'stats.recent': '最近播放',
+            'stats.typechart': '文件类型分布',
+
+            // 网络诊断页面
+            'network.title': '网络诊断',
+            'network.start': '开始诊断',
+            'network.server': '服务器地址',
+            'network.port': '端口',
+            'network.status': '连接状态',
+            'network.status.connected': '已连接',
+            'network.status.disconnected': '未连接',
+            'network.latency': '响应时间',
+            'network.result': '测试结果',
+            'network.result.excellent': '优秀',
+            'network.result.good': '良好',
+            'network.result.slow': '较慢',
+            'network.result.fail': '测试失败',
+            'network.bandwidth': '下载速度',
+            'network.progress': '测试进度',
+
+            // 快捷键页面
+            'shortcuts.title': '快捷键帮助',
+            'shortcuts.playback': '播放控制',
+            'shortcuts.play': '播放 / 暂停',
+            'shortcuts.rewind': '快退 10 秒',
+            'shortcuts.forward': '快进 10 秒',
+            'shortcuts.volumeup': '音量增加',
+            'shortcuts.volumedown': '音量减少',
+            'shortcuts.mute': '静音 / 取消静音',
+            'shortcuts.speed': '播放速度',
+            'shortcuts.slower': '降低速度',
+            'shortcuts.faster': '提高速度',
+            'shortcuts.reset': '重置速度',
+            'shortcuts.queuetitle': '队列操作',
+            'shortcuts.toqueue': '添加到队列',
+            'shortcuts.next': '播放下一个',
+            'shortcuts.prev': '播放上一个',
+            'shortcuts.ui': '界面操作',
+            'shortcuts.fullscreen': '全屏切换',
+            'shortcuts.darkmode': '深色模式切换',
+            'shortcuts.close': '关闭弹窗 / 退出全屏',
+            'shortcuts.gotopage': '跳转到指定页',
+
+            // 多语言页面
+            'i18n.title': '多语言',
+            'i18n.current': '当前语言',
+            'i18n.available': '可用语言',
+            'i18n.changed': '语言已切换',
+
+            // 数据导出页面
+            'export.title': '数据导出 / 导入',
+            'export.exportdata': '导出数据',
+            'export.exportdesc': '将收藏、设置、队列等偏好数据导出为 JSON 文件',
+            'export.importdata': '导入数据',
+            'export.importdesc': '从 JSON 文件恢复收藏、设置、队列等偏好数据',
+            'export.favorites': '收藏设备',
+            'export.settings': '应用设置',
+            'export.queue': '播放队列',
+            'export.history': '播放历史',
+            'export.progress': '播放进度',
+            'export.selectfile': '选择文件',
+            'export.dragdrop': '将 JSON 文件拖拽到此处，或点击选择文件',
+            'export.done': '数据已导出',
+            'export.imported': '数据已导入',
+            'export.error': '导入失败: 文件格式错误',
+
+            // 设置页面
+            'settings.title': '设置',
+            'settings.connection': '连接',
+            'settings.autoReconnect': '自动重连',
+            'settings.timeout': '连接超时（秒）',
+            'settings.playback': '播放',
+            'settings.autoNext': '自动播放下一个',
+            'settings.defaultSpeed': '默认播放速度',
+            'settings.display': '显示',
+            'settings.darkMode': '深色模式',
+            'settings.showThumbnails': '显示缩略图',
+            'settings.data': '数据',
+            'settings.clearProgress': '清除所有播放进度',
+            'settings.clearFavorites': '清除所有收藏',
+            'settings.cleared': '已清除',
+
+            // 关于页面
+            'about.title': '关于',
+            'about.desc': '局域网内多台设备互相发现、浏览、点播彼此的音视频文件，无需拷贝源文件。',
+            'about.features': '功能特性',
+            'about.feature1': 'mDNS 设备自动发现',
+            'about.feature2': 'HTTP + Range 流媒体服务',
+            'about.feature3': '跨设备播放与投屏',
+            'about.feature4': '媒体分组浏览',
+            'about.feature5': '播放队列管理',
+            'about.feature6': '播放速度调节',
+            'about.feature7': '深色模式',
+            'about.techstack': '技术栈',
+            'about.tech1': 'HTML5 / CSS3 / Vanilla JS',
+            'about.tech2': 'HTML5 Video / Audio API',
+            'about.tech3': 'CSS Grid / Flexbox',
+            'about.tech4': 'localStorage 持久化',
+            'about.license': '开源协议',
+            'about.licenseText': 'MIT License',
+
+            // 播放器
+            'player.title': '未播放',
+            'player.cast': '投屏',
+            'player.addToQueue': '+ 队列',
+            'player.castTitle': '选择投屏设备',
+            'player.castTarget': '目标设备 IP',
+
+            // Toast 消息
+            'toast.connected': '已连接',
+            'toast.connectFailed': '连接失败',
+            'toast.addedToQueue': '已添加到队列',
+            'toast.addedToFavorites': '已添加收藏',
+            'toast.castSuccess': '投屏成功',
+            'toast.castFailed': '投屏失败',
+            'toast.fileDeleted': '已删除',
+            'toast.fileRenamed': '重命名成功',
+            'toast.folderCreated': '文件夹已创建',
+            'toast.uploadComplete': '上传完成',
+            'toast.uploadFailed': '上传失败',
+            'toast.cleared': '已清空',
+            'toast.noDevice': '请先连接设备',
+
+            // 确认对话框
+            'confirm.clearHistory': '确定要清空所有播放历史吗？',
+            'confirm.deleteFile': '确定要删除',
+            'confirm.clearProgress': '确定要清除所有播放进度吗？',
+            'confirm.clearFavorites': '确定要清除所有收藏吗？'
+        },
+
+        'en': {
+            'nav.media': 'Media',
+            'nav.devices': 'Devices',
+            'nav.favorites': 'Favorites',
+            'nav.queue': 'Queue',
+            'nav.history': 'History',
+            'nav.filemanager': 'Files',
+            'nav.stats': 'Statistics',
+            'nav.network': 'Network',
+            'nav.shortcuts': 'Shortcuts',
+            'nav.i18n': 'Language',
+            'nav.export': 'Export',
+            'nav.settings': 'Settings',
+            'nav.about': 'About',
+
+            'common.connect': 'Connect',
+            'common.search': 'Search',
+            'common.clear': 'Clear',
+            'common.save': 'Save',
+            'common.cancel': 'Cancel',
+            'common.delete': 'Delete',
+            'common.upload': 'Upload',
+            'common.export': 'Export',
+            'common.import': 'Import',
+            'common.refresh': 'Refresh',
+            'common.send': 'Send',
+            'common.add': '+ Add',
+            'common.close': 'Close',
+            'common.confirm': 'OK',
+            'common.back': 'Back',
+            'common.next': 'Next',
+            'common.prev': 'Previous',
+
+            'theme.dark': 'Dark Mode',
+            'theme.light': 'Light Mode',
+
+            'media.title': 'Media',
+            'media.placeholder.host': 'Device IP',
+            'media.placeholder.port': 'Port',
+            'media.filter.all': 'All',
+            'media.filter.video': 'Video',
+            'media.filter.audio': 'Audio',
+            'media.group': 'Group',
+            'media.empty': 'Connect to a device first',
+            'media.empty.search': 'No results',
+            'media.search': 'Search files...',
+
+            'devices.title': 'Discovered Devices',
+            'devices.empty': 'No devices',
+            'devices.current': 'Connected',
+            'devices.connect': 'Connect',
+
+            'favorites.title': 'Favorite Devices',
+            'favorites.add': '+ Add',
+            'favorites.empty': 'No favorites',
+            'favorites.dialog.title': 'Add Favorite Device',
+            'favorites.dialog.name': 'Device Name',
+            'favorites.dialog.host': 'Device IP',
+            'favorites.dialog.port': 'Port',
+            'favorites.dialog.alias': 'Alias (optional)',
+
+            'queue.title': 'Play Queue',
+            'queue.empty': 'Queue is empty',
+            'queue.add': 'Add to Queue',
+
+            'history.title': 'Play History',
+            'history.search': 'Search history...',
+            'history.clear': 'Clear History',
+            'history.empty': 'No history',
+
+            'filemanager.title': 'File Manager',
+            'filemanager.upload': 'Upload File',
+            'filemanager.newfolder': 'New Folder',
+            'filemanager.root': 'Root',
+            'filemanager.search': 'Search files...',
+            'filemanager.empty': 'No files',
+            'filemanager.play': 'Play',
+
+            'stats.title': 'Statistics',
+            'stats.playcount': 'Play Count',
+            'stats.totaltime': 'Total Duration',
+            'stats.totalsize': 'Data Played',
+            'stats.devicecount': 'Devices',
+            'stats.recent': 'Recent Plays',
+            'stats.typechart': 'File Types',
+
+            'network.title': 'Network Diagnostics',
+            'network.start': 'Start Diagnosis',
+            'network.server': 'Server Address',
+            'network.port': 'Port',
+            'network.status': 'Connection',
+            'network.status.connected': 'Connected',
+            'network.status.disconnected': 'Disconnected',
+            'network.latency': 'Response Time',
+            'network.result': 'Result',
+            'network.result.excellent': 'Excellent',
+            'network.result.good': 'Good',
+            'network.result.slow': 'Slow',
+            'network.result.fail': 'Failed',
+            'network.bandwidth': 'Download Speed',
+            'network.progress': 'Progress',
+
+            'shortcuts.title': 'Keyboard Shortcuts',
+            'shortcuts.playback': 'Playback',
+            'shortcuts.play': 'Play / Pause',
+            'shortcuts.rewind': 'Rewind 10s',
+            'shortcuts.forward': 'Forward 10s',
+            'shortcuts.volumeup': 'Volume Up',
+            'shortcuts.volumedown': 'Volume Down',
+            'shortcuts.mute': 'Mute / Unmute',
+            'shortcuts.speed': 'Playback Speed',
+            'shortcuts.slower': 'Slow Down',
+            'shortcuts.faster': 'Speed Up',
+            'shortcuts.reset': 'Reset Speed',
+            'shortcuts.queuetitle': 'Queue',
+            'shortcuts.toqueue': 'Add to Queue',
+            'shortcuts.next': 'Next Track',
+            'shortcuts.prev': 'Previous Track',
+            'shortcuts.ui': 'Interface',
+            'shortcuts.fullscreen': 'Toggle Fullscreen',
+            'shortcuts.darkmode': 'Toggle Dark Mode',
+            'shortcuts.close': 'Close Dialog / Exit Fullscreen',
+            'shortcuts.gotopage': 'Go to Page 1-9',
+
+            'i18n.title': 'Language',
+            'i18n.current': 'Current Language',
+            'i18n.available': 'Available Languages',
+            'i18n.changed': 'Language changed to',
+
+            'export.title': 'Data Export / Import',
+            'export.exportdata': 'Export Data',
+            'export.exportdesc': 'Export favorites, settings, queue and other preferences to a JSON file',
+            'export.importdata': 'Import Data',
+            'export.importdesc': 'Restore favorites, settings, queue and other preferences from a JSON file',
+            'export.favorites': 'Favorite Devices',
+            'export.settings': 'App Settings',
+            'export.queue': 'Play Queue',
+            'export.history': 'Play History',
+            'export.progress': 'Play Progress',
+            'export.selectfile': 'Select File',
+            'export.dragdrop': 'Drag a JSON file here, or click to select',
+            'export.done': 'Data exported',
+            'export.imported': 'Data imported',
+            'export.error': 'Import failed: invalid file format',
+
+            'settings.title': 'Settings',
+            'settings.connection': 'Connection',
+            'settings.autoReconnect': 'Auto Reconnect',
+            'settings.timeout': 'Connection Timeout (s)',
+            'settings.playback': 'Playback',
+            'settings.autoNext': 'Auto Play Next',
+            'settings.defaultSpeed': 'Default Speed',
+            'settings.display': 'Display',
+            'settings.darkMode': 'Dark Mode',
+            'settings.showThumbnails': 'Show Thumbnails',
+            'settings.data': 'Data',
+            'settings.clearProgress': 'Clear All Progress',
+            'settings.clearFavorites': 'Clear All Favorites',
+            'settings.cleared': 'Cleared',
+
+            'about.title': 'About',
+            'about.desc': 'Discover, browse and stream audio/video files across devices on your LAN without copying.',
+            'about.features': 'Features',
+            'about.feature1': 'mDNS Auto Discovery',
+            'about.feature2': 'HTTP + Range Streaming',
+            'about.feature3': 'Cross-device Playback & Casting',
+            'about.feature4': 'Media Group Browsing',
+            'about.feature5': 'Play Queue Management',
+            'about.feature6': 'Playback Speed Control',
+            'about.feature7': 'Dark Mode',
+            'about.techstack': 'Tech Stack',
+            'about.tech1': 'HTML5 / CSS3 / Vanilla JS',
+            'about.tech2': 'HTML5 Video / Audio API',
+            'about.tech3': 'CSS Grid / Flexbox',
+            'about.tech4': 'localStorage Persistence',
+            'about.license': 'License',
+            'about.licenseText': 'MIT License',
+
+            'player.title': 'Not Playing',
+            'player.cast': 'Cast',
+            'player.addToQueue': '+ Queue',
+            'player.castTitle': 'Select Cast Device',
+            'player.castTarget': 'Target Device IP',
+
+            'toast.connected': 'Connected',
+            'toast.connectFailed': 'Connection failed',
+            'toast.addedToQueue': 'Added to queue',
+            'toast.addedToFavorites': 'Added to favorites',
+            'toast.castSuccess': 'Cast successful',
+            'toast.castFailed': 'Cast failed',
+            'toast.fileDeleted': 'Deleted',
+            'toast.fileRenamed': 'Renamed',
+            'toast.folderCreated': 'Folder created',
+            'toast.uploadComplete': 'Upload complete',
+            'toast.uploadFailed': 'Upload failed',
+            'toast.cleared': 'Cleared',
+            'toast.noDevice': 'Connect to a device first',
+
+            'confirm.clearHistory': 'Clear all play history?',
+            'confirm.deleteFile': 'Delete',
+            'confirm.clearProgress': 'Clear all play progress?',
+            'confirm.clearFavorites': 'Clear all favorites?'
+        },
+
+        'ja': {
+            'nav.media': 'メディア',
+            'nav.devices': 'デバイス',
+            'nav.favorites': 'お気に入り',
+            'nav.queue': 'キュー',
+            'nav.history': '履歴',
+            'nav.filemanager': 'ファイル',
+            'nav.stats': '統計',
+            'nav.network': 'ネットワーク',
+            'nav.shortcuts': 'ショートカット',
+            'nav.i18n': '言語',
+            'nav.export': 'エクスポート',
+            'nav.settings': '設定',
+            'nav.about': 'について',
+
+            'common.connect': '接続',
+            'common.search': '検索',
+            'common.clear': 'クリア',
+            'common.save': '保存',
+            'common.cancel': 'キャンセル',
+            'common.delete': '削除',
+            'common.upload': 'アップロード',
+            'common.export': 'エクスポート',
+            'common.import': 'インポート',
+            'common.refresh': '更新',
+            'common.send': '送信',
+            'common.add': '+ 追加',
+            'common.close': '閉じる',
+            'common.confirm': 'OK',
+            'common.back': '戻る',
+            'common.next': '次へ',
+            'common.prev': '前へ',
+
+            'theme.dark': 'ダークモード',
+            'theme.light': 'ライトモード',
+
+            'media.title': 'メディア',
+            'media.placeholder.host': 'デバイス IP',
+            'media.placeholder.port': 'ポート',
+            'media.filter.all': 'すべて',
+            'media.filter.video': '動画',
+            'media.filter.audio': '音声',
+            'media.group': 'グループ',
+            'media.empty': 'デバイスに接続してください',
+            'media.empty.search': '結果なし',
+            'media.search': 'ファイルを検索...',
+
+            'devices.title': '検出されたデバイス',
+            'devices.empty': 'デバイスなし',
+            'devices.current': '接続中',
+            'devices.connect': '接続',
+
+            'favorites.title': 'お気に入りデバイス',
+            'favorites.add': '+ 追加',
+            'favorites.empty': 'お気に入りなし',
+            'favorites.dialog.title': 'お気に入りデバイスを追加',
+            'favorites.dialog.name': 'デバイス名',
+            'favorites.dialog.host': 'デバイス IP',
+            'favorites.dialog.port': 'ポート',
+            'favorites.dialog.alias': 'エイリアス（オプション）',
+
+            'queue.title': 'プレイキュー',
+            'queue.empty': 'キューは空です',
+            'queue.add': 'キューに追加',
+
+            'history.title': '再生履歴',
+            'history.search': '履歴を検索...',
+            'history.clear': '履歴をクリア',
+            'history.empty': '履歴なし',
+
+            'filemanager.title': 'ファイル管理',
+            'filemanager.upload': 'ファイルをアップロード',
+            'filemanager.newfolder': '新しいフォルダ',
+            'filemanager.root': 'ルート',
+            'filemanager.search': 'ファイルを検索...',
+            'filemanager.empty': 'ファイルなし',
+            'filemanager.play': '再生',
+
+            'stats.title': '統計',
+            'stats.playcount': '再生回数',
+            'stats.totaltime': '合計再生時間',
+            'stats.totalsize': '転送量',
+            'stats.devicecount': '接続デバイス',
+            'stats.recent': '最近の再生',
+            'stats.typechart': 'ファイルタイプ',
+
+            'network.title': 'ネットワーク診断',
+            'network.start': '診断開始',
+            'network.server': 'サーバーアドレス',
+            'network.port': 'ポート',
+            'network.status': '接続状態',
+            'network.status.connected': '接続済み',
+            'network.status.disconnected': '未接続',
+            'network.latency': 'レスポンスタイム',
+            'network.result': '結果',
+            'network.result.excellent': '優秀',
+            'network.result.good': '良好',
+            'network.result.slow': '遅い',
+            'network.result.fail': '失敗',
+            'network.bandwidth': 'ダウンロード速度',
+            'network.progress': '進捗',
+
+            'shortcuts.title': 'キーボードショートカット',
+            'shortcuts.playback': '再生操作',
+            'shortcuts.play': '再生 / 一時停止',
+            'shortcuts.rewind': '10秒巻き戻し',
+            'shortcuts.forward': '10秒早送り',
+            'shortcuts.volumeup': '音量上げ',
+            'shortcuts.volumedown': '音量下げ',
+            'shortcuts.mute': 'ミュート切替',
+            'shortcuts.speed': '再生速度',
+            'shortcuts.slower': '速度ダウン',
+            'shortcuts.faster': '速度アップ',
+            'shortcuts.reset': '速度リセット',
+            'shortcuts.queuetitle': 'キュー操作',
+            'shortcuts.toqueue': 'キューに追加',
+            'shortcuts.next': '次トラック',
+            'shortcuts.prev': '前トラック',
+            'shortcuts.ui': 'インターフェース',
+            'shortcuts.fullscreen': 'フルスクリーン切替',
+            'shortcuts.darkmode': 'ダークモード切替',
+            'shortcuts.close': 'ダイアログを閉じる',
+            'shortcuts.gotopage': 'ページ1-9に移動',
+
+            'i18n.title': '言語',
+            'i18n.current': '現在の言語',
+            'i18n.available': '利用可能な言語',
+            'i18n.changed': '言語を変更しました',
+
+            'export.title': 'データエクスポート / インポート',
+            'export.exportdata': 'データをエクスポート',
+            'export.exportdesc': 'お気に入り、設定、キューなどの設定をJSONファイルにエクスポート',
+            'export.importdata': 'データをインポート',
+            'export.importdesc': 'JSONファイルからお気に入り、設定、キューなどの設定を復元',
+            'export.favorites': 'お気に入りデバイス',
+            'export.settings': 'アプリ設定',
+            'export.queue': 'プレイキュー',
+            'export.history': '再生履歴',
+            'export.progress': '再生進捗',
+            'export.selectfile': 'ファイルを選択',
+            'export.dragdrop': 'JSONファイルをここにドラッグ、またはクリックして選択',
+            'export.done': 'エクスポート完了',
+            'export.imported': 'インポート完了',
+            'export.error': 'インポート失敗：無効なファイル形式',
+
+            'settings.title': '設定',
+            'settings.connection': '接続',
+            'settings.autoReconnect': '自動再接続',
+            'settings.timeout': '接続タイムアウト（秒）',
+            'settings.playback': '再生',
+            'settings.autoNext': '自動再生',
+            'settings.defaultSpeed': 'デフォルト速度',
+            'settings.display': '表示',
+            'settings.darkMode': 'ダークモード',
+            'settings.showThumbnails': 'サムネイル表示',
+            'settings.data': 'データ',
+            'settings.clearProgress': '再生進捗をクリア',
+            'settings.clearFavorites': 'お気に入りをクリア',
+            'settings.cleared': 'クリアしました',
+
+            'about.title': 'について',
+            'about.desc': 'LAN内のデバイス間で音声・動画ファイルをコピーせずに発見、閲覧、再生します。',
+            'about.features': '機能',
+            'about.feature1': 'mDNS自動検出',
+            'about.feature2': 'HTTP + Rangeストリーミング',
+            'about.feature3': 'デバイス間再生とキャスト',
+            'about.feature4': 'メディアグループ閲覧',
+            'about.feature5': 'プレイキュー管理',
+            'about.feature6': '再生速度制御',
+            'about.feature7': 'ダークモード',
+            'about.techstack': '技術スタック',
+            'about.tech1': 'HTML5 / CSS3 / Vanilla JS',
+            'about.tech2': 'HTML5 Video / Audio API',
+            'about.tech3': 'CSS Grid / Flexbox',
+            'about.tech4': 'localStorage永続化',
+            'about.license': 'ライセンス',
+            'about.licenseText': 'MIT License',
+
+            'player.title': '再生中なし',
+            'player.cast': 'キャスト',
+            'player.addToQueue': '+ キュー',
+            'player.castTitle': 'キャストデバイスを選択',
+            'player.castTarget': 'ターゲットデバイス IP',
+
+            'toast.connected': '接続しました',
+            'toast.connectFailed': '接続失敗',
+            'toast.addedToQueue': 'キューに追加',
+            'toast.addedToFavorites': 'お気に入りに追加',
+            'toast.castSuccess': 'キャスト成功',
+            'toast.castFailed': 'キャスト失敗',
+            'toast.fileDeleted': '削除しました',
+            'toast.fileRenamed': '名前を変更しました',
+            'toast.folderCreated': 'フォルダを作成',
+            'toast.uploadComplete': 'アップロード完了',
+            'toast.uploadFailed': 'アップロード失敗',
+            'toast.cleared': 'クリアしました',
+            'toast.noDevice': 'デバイスに接続してください',
+
+            'confirm.clearHistory': '再生履歴をすべてクリアしますか？',
+            'confirm.deleteFile': '削除',
+            'confirm.clearProgress': '再生進捗をすべてクリアしますか？',
+            'confirm.clearFavorites': 'お気に入りをすべてクリアしますか？'
+        },
+
+        'ko': {
+            'nav.media': '미디어',
+            'nav.devices': '기기',
+            'nav.favorites': '즐겨찾기',
+            'nav.queue': '큐',
+            'nav.history': '기록',
+            'nav.filemanager': '파일',
+            'nav.stats': '통계',
+            'nav.network': '네트워크',
+            'nav.shortcuts': '단축키',
+            'nav.i18n': '언어',
+            'nav.export': '내보내기',
+            'nav.settings': '설정',
+            'nav.about': '정보',
+
+            'common.connect': '연결',
+            'common.search': '검색',
+            'common.clear': '지우기',
+            'common.save': '저장',
+            'common.cancel': '취소',
+            'common.delete': '삭제',
+            'common.upload': '업로드',
+            'common.export': '내보내기',
+            'common.import': '가져오기',
+            'common.refresh': '새로고침',
+            'common.send': '보내기',
+            'common.add': '+ 추가',
+            'common.close': '닫기',
+            'common.confirm': '확인',
+            'common.back': '뒤로',
+            'common.next': '다음',
+            'common.prev': '이전',
+
+            'theme.dark': '다크 모드',
+            'theme.light': '라이트 모드',
+
+            'media.title': '미디어',
+            'media.placeholder.host': '기기 IP',
+            'media.placeholder.port': '포트',
+            'media.filter.all': '전체',
+            'media.filter.video': '비디오',
+            'media.filter.audio': '오디오',
+            'media.group': '그룹',
+            'media.empty': '기기에 연결하세요',
+            'media.empty.search': '결과 없음',
+            'media.search': '파일 검색...',
+
+            'devices.title': '발견된 기기',
+            'devices.empty': '기기 없음',
+            'devices.current': '연결됨',
+            'devices.connect': '연결',
+
+            'favorites.title': '즐겨찾기 기기',
+            'favorites.add': '+ 추가',
+            'favorites.empty': '즐겨찾기 없음',
+            'favorites.dialog.title': '즐겨찾기 기기 추가',
+            'favorites.dialog.name': '기기 이름',
+            'favorites.dialog.host': '기기 IP',
+            'favorites.dialog.port': '포트',
+            'favorites.dialog.alias': '별칭 (선택)',
+
+            'queue.title': '재생 큐',
+            'queue.empty': '큐가 비어 있습니다',
+            'queue.add': '큐에 추가',
+
+            'history.title': '재생 기록',
+            'history.search': '기록 검색...',
+            'history.clear': '기록 지우기',
+            'history.empty': '기록 없음',
+
+            'filemanager.title': '파일 관리',
+            'filemanager.upload': '파일 업로드',
+            'filemanager.newfolder': '새 폴더',
+            'filemanager.root': '루트',
+            'filemanager.search': '파일 검색...',
+            'filemanager.empty': '파일 없음',
+            'filemanager.play': '재생',
+
+            'stats.title': '통계',
+            'stats.playcount': '재생 횟수',
+            'stats.totaltime': '총 재생 시간',
+            'stats.totalsize': '전송량',
+            'stats.devicecount': '연결 기기',
+            'stats.recent': '최근 재생',
+            'stats.typechart': '파일 유형',
+
+            'network.title': '네트워크 진단',
+            'network.start': '진단 시작',
+            'network.server': '서버 주소',
+            'network.port': '포트',
+            'network.status': '연결 상태',
+            'network.status.connected': '연결됨',
+            'network.status.disconnected': '연결 안됨',
+            'network.latency': '응답 시간',
+            'network.result': '결과',
+            'network.result.excellent': '우수',
+            'network.result.good': '양호',
+            'network.result.slow': '느림',
+            'network.result.fail': '실패',
+            'network.bandwidth': '다운로드 속도',
+            'network.progress': '진행률',
+
+            'shortcuts.title': '키보드 단축키',
+            'shortcuts.playback': '재생 제어',
+            'shortcuts.play': '재생 / 일시정지',
+            'shortcuts.rewind': '10초 되감기',
+            'shortcuts.forward': '10초 빨리감기',
+            'shortcuts.volumeup': '볼륨 올리기',
+            'shortcuts.volumedown': '볼륨 내리기',
+            'shortcuts.mute': '음소거 전환',
+            'shortcuts.speed': '재생 속도',
+            'shortcuts.slower': '속도 낮추기',
+            'shortcuts.faster': '속도 높이기',
+            'shortcuts.reset': '속도 초기화',
+            'shortcuts.queuetitle': '큐 작업',
+            'shortcuts.toqueue': '큐에 추가',
+            'shortcuts.next': '다음 트랙',
+            'shortcuts.prev': '이전 트랙',
+            'shortcuts.ui': '인터페이스',
+            'shortcuts.fullscreen': '전체화면 전환',
+            'shortcuts.darkmode': '다크 모드 전환',
+            'shortcuts.close': '팝업 닫기 / 전체화면 해제',
+            'shortcuts.gotopage': '페이지 1-9로 이동',
+
+            'i18n.title': '언어',
+            'i18n.current': '현재 언어',
+            'i18n.available': '사용 가능한 언어',
+            'i18n.changed': '언어가 변경되었습니다',
+
+            'export.title': '데이터 내보내기 / 가져오기',
+            'export.exportdata': '데이터 내보내기',
+            'export.exportdesc': '즐겨찾기, 설정, 큐 등의 설정을 JSON 파일로 내보내기',
+            'export.importdata': '데이터 가져오기',
+            'export.importdesc': 'JSON 파일에서 즐겨찾기, 설정, 큐 등의 설정 복원',
+            'export.favorites': '즐겨찾기 기기',
+            'export.settings': '앱 설정',
+            'export.queue': '재생 큐',
+            'export.history': '재생 기록',
+            'export.progress': '재생 진행',
+            'export.selectfile': '파일 선택',
+            'export.dragdrop': 'JSON 파일을 여기에 드래그하거나 클릭하여 선택',
+            'export.done': '내보내기 완료',
+            'export.imported': '가져오기 완료',
+            'export.error': '가져오기 실패: 잘못된 파일 형식',
+
+            'settings.title': '설정',
+            'settings.connection': '연결',
+            'settings.autoReconnect': '자동 재연결',
+            'settings.timeout': '연결 시간 초과 (초)',
+            'settings.playback': '재생',
+            'settings.autoNext': '자동 재생',
+            'settings.defaultSpeed': '기본 속도',
+            'settings.display': '표시',
+            'settings.darkMode': '다크 모드',
+            'settings.showThumbnails': '썸네일 표시',
+            'settings.data': '데이터',
+            'settings.clearProgress': '모든 진행 지우기',
+            'settings.clearFavorites': '모든 즐겨찾기 지우기',
+            'settings.cleared': '지워졌습니다',
+
+            'about.title': '정보',
+            'about.desc': 'LAN에서 기기 간에 오디오/비디오 파일을 복사하지 않고 발견, 탐색, 재생합니다.',
+            'about.features': '기능',
+            'about.feature1': 'mDNS 자동 검색',
+            'about.feature2': 'HTTP + Range 스트리밍',
+            'about.feature3': '기기 간 재생 및 캐스트',
+            'about.feature4': '미디어 그룹 탐색',
+            'about.feature5': '재생 큐 관리',
+            'about.feature6': '재생 속도 제어',
+            'about.feature7': '다크 모드',
+            'about.techstack': '기술 스택',
+            'about.tech1': 'HTML5 / CSS3 / Vanilla JS',
+            'about.tech2': 'HTML5 Video / Audio API',
+            'about.tech3': 'CSS Grid / Flexbox',
+            'about.tech4': 'localStorage 영속화',
+            'about.license': '라이선스',
+            'about.licenseText': 'MIT License',
+
+            'player.title': '재생 중 아님',
+            'player.cast': '캐스트',
+            'player.addToQueue': '+ 큐',
+            'player.castTitle': '캐스트 기기 선택',
+            'player.castTarget': '대상 기기 IP',
+
+            'toast.connected': '연결됨',
+            'toast.connectFailed': '연결 실패',
+            'toast.addedToQueue': '큐에 추가됨',
+            'toast.addedToFavorites': '즐겨찾기에 추가됨',
+            'toast.castSuccess': '캐스트 성공',
+            'toast.castFailed': '캐스트 실패',
+            'toast.fileDeleted': '삭제됨',
+            'toast.fileRenamed': '이름 변경됨',
+            'toast.folderCreated': '폴더 생성됨',
+            'toast.uploadComplete': '업로드 완료',
+            'toast.uploadFailed': '업로드 실패',
+            'toast.cleared': '지워졌습니다',
+            'toast.noDevice': '기기에 연결하세요',
+
+            'confirm.clearHistory': '모든 재생 기록을 지우시겠습니까?',
+            'confirm.deleteFile': '삭제',
+            'confirm.clearProgress': '모든 재생 진행을 지우시겠습니까?',
+            'confirm.clearFavorites': '모든 즐겨찾기를 지우시겠습니까?'
+        }
+    },
+
+    /**
+     * 初始化
+     */
+    init() {
+        this.currentLang = localStorage.getItem('hmv_lang') || 'zh-CN';
+        this.setupLanguageSelector();
+    },
+
+    /**
+     * 设置语言选择器
+     */
+    setupLanguageSelector() {
+        document.querySelectorAll('.lang-option').forEach(el => {
+            el.addEventListener('click', () => {
+                const lang = el.dataset.lang;
+                this.setLanguage(lang);
+            });
+        });
+    },
+
+    /**
+     * 切换语言
+     */
+    setLanguage(lang) {
+        this.currentLang = lang;
+        localStorage.setItem('hmv_lang', lang);
+        this.applyTranslations();
+        this.render();
+
+        const names = { 'zh-CN': '简体中文', 'en': 'English', 'ja': '日本語', 'ko': '한국어' };
+        App.showToast(`${this.t('i18n.changed')} ${names[lang] || lang}`);
+    },
+
+    /**
+     * 获取翻译文本
+     */
+    t(key) {
+        const dict = this.translations[this.currentLang] || this.translations['zh-CN'];
+        return dict[key] || this.translations['zh-CN'][key] || key;
+    },
+
+    /**
+     * 应用翻译到所有带 data-i18n 属性的元素
+     */
+    applyTranslations() {
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            el.textContent = this.t(key);
+        });
+
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+            const key = el.getAttribute('data-i18n-placeholder');
+            el.placeholder = this.t(key);
+        });
+
+        document.querySelectorAll('[data-i18n-title]').forEach(el => {
+            const key = el.getAttribute('data-i18n-title');
+            el.title = this.t(key);
+        });
+    },
+
+    /**
+     * 渲染语言页面
+     */
+    render() {
+        const names = { 'zh-CN': '简体中文', 'en': 'English', 'ja': '日本語', 'ko': '한국어' };
+        const el = document.getElementById('i18n-current-lang');
+        if (el) el.textContent = names[this.currentLang] || this.currentLang;
+
+        document.querySelectorAll('.lang-option').forEach(el => {
+            const isActive = el.dataset.lang === this.currentLang;
+            el.classList.toggle('active', isActive);
+            const check = el.querySelector('.lang-check');
+            if (check) check.textContent = isActive ? '\u2713' : '';
+        });
+    }
+};

@@ -20,6 +20,15 @@ data class MediaItem(
 ) : java.io.Serializable
 
 /**
+ * 文件操作结果
+ */
+data class FileOperationResult(
+    val success: Boolean,
+    val message: String = "",
+    val id: String? = null
+)
+
+/**
  * 媒体的数据源抽象。
  *
  * 将「HTTP+Range 服务」与「具体文件系统/MediaStore」解耦：
@@ -29,6 +38,9 @@ data class MediaItem(
 interface MediaRepository {
     /** 当前可分享的全部媒体列表。 */
     fun list(): List<MediaItem>
+
+    /** 按指定路径列出媒体（子目录浏览）。 */
+    fun list(path: String): List<MediaItem> = list()
 
     /** 按 id 查找媒体，不存在返回 null。 */
     fun findById(id: String): MediaItem?
@@ -61,4 +73,22 @@ interface MediaRepository {
      * @return 缩略图字节流（JPEG/PNG），调用方负责 close；不支持时返回 null
      */
     fun getThumbnail(id: String): java.io.InputStream? = null
+
+    // ========== 文件操作（需后端支持） ==========
+
+    /** 上传文件到指定路径，返回操作结果。 */
+    fun uploadFile(fileName: String, path: String, data: ByteArray): FileOperationResult =
+        FileOperationResult(false, "not supported")
+
+    /** 删除指定 id 的文件。 */
+    fun deleteFile(id: String): FileOperationResult =
+        FileOperationResult(false, "not supported")
+
+    /** 重命名指定 id 的文件。 */
+    fun renameFile(id: String, newName: String): FileOperationResult =
+        FileOperationResult(false, "not supported")
+
+    /** 创建文件夹。 */
+    fun createFolder(name: String, parentPath: String): FileOperationResult =
+        FileOperationResult(false, "not supported")
 }

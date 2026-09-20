@@ -57,5 +57,59 @@ const API = {
         const url = `http://${host}:${port}/media`;
         const response = await fetch(url, { method: 'HEAD' });
         return response.ok;
+    },
+
+    // ========== 文件操作 API（需后端支持） ==========
+
+    /**
+     * 上传文件
+     */
+    async uploadFile(file, path = '/') {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('path', path);
+        const response = await fetch(`${this.baseUrl}/upload`, {
+            method: 'POST',
+            body: formData
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return await response.json();
+    },
+
+    /**
+     * 删除文件
+     */
+    async deleteFile(mediaId) {
+        const response = await fetch(`${this.baseUrl}/media/${mediaId}`, {
+            method: 'DELETE'
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return await response.json();
+    },
+
+    /**
+     * 重命名文件
+     */
+    async renameFile(mediaId, newName) {
+        const response = await fetch(`${this.baseUrl}/media/${mediaId}/rename`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: newName })
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return await response.json();
+    },
+
+    /**
+     * 新建文件夹
+     */
+    async createFolder(name, parentPath = '/') {
+        const response = await fetch(`${this.baseUrl}/folder`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, path: parentPath })
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return await response.json();
     }
 };
