@@ -1,0 +1,388 @@
+# HomeMediaViewer V3 规划 — 多端拆分
+
+> 更新时间：2026-09-19
+> 目标：将 HomeMediaViewer 拆分为手机端、PAD 端、PC 端三套客户端，共享同一服务端核心。
+
+---
+
+## 0. 设计原则：端侧代码完全独立
+
+**核心原则：三个端的代码相互独立，一端修改不影响另一端。**
+
+### 0.1 隔离策略
+
+```
+HomeMediaViewer-ext/
+├── core-server/          ← 共享层（唯一共享代码）
+├── app/                  ← Phone 端（独立模块）
+├── app-tablet/           ← PAD 端（独立模块）
+├── web-client/           ← PC 端（独立目录）
+└── build.gradle.kts      ← 根构建（不耦合具体端）
+```
+
+| 层级 | 归属 | 依赖关系 |
+|------|------|----------|
+| `core-server` | 共享 | 零外部依赖，纯 Kotlin/JVM |
+| `app` | Phone 端 | 依赖 `core-server`，不依赖 `app-tablet` |
+| `app-tablet` | PAD 端 | 依赖 `core-server`，不依赖 `app` |
+| `web-client` | PC 端 | 无 Kotlin 依赖，仅 HTTP API 通信 |
+
+### 0.2 独立性保证
+
+| 规则 | 说明 |
+|------|------|
+| 模块隔离 | 每个端是独立的 Gradle 模块（Android）或独立目录（Web） |
+| 无交叉依赖 | Phone 端不 import PAD 端的类，反之亦然 |
+| 共享代码只增不改 | core-server 只能新增功能，不能修改现有 API 签名 |
+| 各端独立构建 | `./gradlew :app:assembleDebug` 不触发 `app-tablet` 构建 |
+| 各端独立仓库（可选） | 后期可拆分为独立 Git 仓库，通过 HTTP API 解耦 |
+
+### 0.3 共享代码边界
+
+**可以共享（core-server 内）：**
+- HttpRangeServer（HTTP 服务）
+- MediaRepository（媒体数据源）
+- RangeParser（Range 解析）
+- RangeReadable（seek 接口）
+
+**不可以共享（各端独立实现）：**
+- UI 布局（Activity/Fragment/HTML）
+- 适配器（Adapter/ViewHolder）
+- 状态管理（ViewModel/State）
+- 平台特定逻辑（Android NSD/WebSocket）
+
+---
+
+## 1. 架构总览
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    core-server (共享)                     │
+│  HttpRangeServer / MediaRepository / RangeParser / ...   │
+│           纯 Kotlin/JVM，零 Android 依赖                  │
+└─────────────────────────────────────────────────────────┘
+        │                  │                  │
+        ▼                  ▼                  ▼
+┌──────────────┐  ┌──────────────┐  ┌──────────────┐
+│  Phone 端    │  │  PAD 端      │  │  PC 端       │
+│  Android App │  │  Android App │  │  Web App     │
+│  单栏布局    │  │  双栏布局    │  │  浏览器访问   │
+│  手机优化    │  │  平板优化    │  │  桌面体验     │
+└──────────────┘  └──────────────┘  └──────────────┘
+```
+
+---
+
+## 2. 端侧定义
+
+### 2.1 Phone 端（手机）
+
+| 项 | 说明 |
+|----|------|
+| 平台 | Android (当前实现) |
+| 代码位置 | `app/` 模块（独立） |
+| 依赖 | 仅依赖 `core-server` |
+| UI 特征 | 单栏布局，底部导航 |
+| 目标设备 | 手机（5-7 英寸） |
+| 版本 | v0.2 已完成 |
+| 状态 | ✅ 已实现 |
+
+### 2.2 PAD 端（平板）
+
+| 项 | 说明 |
+|----|------|
+| 平台 | Android (Tablet) |
+| 代码位置 | `app-tablet/` 模块（独立） |
+| 依赖 | 仅依赖 `core-server`，不依赖 `app` |
+| UI 特征 | 双栏布局，左侧设备列表 + 右侧媒体内容 |
+| 目标设备 | 平板（8-13 英寸） |
+| 版本 | v0.3 |
+| 状态 | ⏳ 规划中 |
+
+**独立性说明：**
+- `app-tablet` 是独立的 Android 模块，有自己的 `build.gradle.kts`
+- 可以独立构建、独立安装、独立发布
+- 修改 `app` 模块不会影响 `app-tablet`，反之亦然
+- 两者共享 `core-server` 的 HTTP API，但 UI 层完全独立
+
+### 2.3 PC 端（桌面浏览器）
+
+| 项 | 说明 |
+|----|------|
+| 平台 | Web (HTML/CSS/JS) |
+| 代码位置 | `web-client/` 目录（独立） |
+| 依赖 | 无 Kotlin 依赖，仅 HTTP API |
+| UI 特征 | 响应式布局，桌面浏览器优化 |
+| 目标设备 | PC 浏览器（Chrome/Edge/Firefox） |
+| 版本 | v0.3 |
+| 状态 | ⏳ 规划中 |
+
+**独立性说明：**
+- `web-client` 是纯前端项目，无 Kotlin/Android 依赖
+- 通过 HTTP API（Fetch）与任意设备通信
+- 可以直接用浏览器打开 `index.html` 运行
+- 修改 Android 端代码不会影响 PC 端
+
+---
+
+## 3. 共享核心 (core-server)
+
+core-server 模块已经是纯 Kotlin/JVM，无需修改即可被所有端共享：
+
+```
+core-server/
+├── HttpRangeServer.kt      HTTP 服务（GET/POST/Range）
+├── MediaRepository.kt      媒体数据源抽象
+├── FileMediaRepository.kt  文件系统实现
+├── RangeParser.kt          Range 头解析
+└── RangeReadable.kt        可 seek 接口
+```
+
+### 3.1 共享边界
+
+| 共享内容 | 说明 |
+|----------|------|
+| HTTP API | 所有端通过 HTTP 协议通信 |
+| 数据格式 | JSON 媒体列表、Range 请求 |
+| 端点定义 | `/media`, `/media/{id}`, `/play` |
+
+| 不共享内容 | 说明 |
+|------------|------|
+| UI 实现 | 各端独立实现 |
+| 状态管理 | 各端独立管理 |
+| 平台逻辑 | Android NSD / Web WebSocket |
+
+### 3.2 依赖方式
+
+| 端 | 依赖方式 |
+|----|----------|
+| Phone 端 | `implementation(project(":core-server"))` |
+| PAD 端 | `implementation(project(":core-server"))` |
+| PC 端 | HTTP API（Fetch），无代码依赖 |
+
+---
+
+## 4. PAD 端设计
+
+### 4.1 布局方案
+
+采用 **Master-Detail** 双栏布局：
+
+```
+┌─────────────────────────────────────────────┐
+│  搜索栏 / 筛选按钮                          │
+├──────────────┬──────────────────────────────┤
+│  设备列表    │  媒体列表（分组/平铺）        │
+│  (收藏优先)  │  缩略图 + 标题 + 时长         │
+│              │                              │
+│              │                              │
+├──────────────┴──────────────────────────────┤
+│  底部播放条（迷你播放器 + 队列指示）          │
+└─────────────────────────────────────────────┘
+```
+
+### 4.2 新增功能
+
+| 功能 | 说明 |
+|------|------|
+| 双栏布局 | 左侧设备/文件夹，右侧媒体内容 |
+| 迷你播放器 | 底部固定播放条，不跳转全屏 |
+| 拖拽投屏 | 长按媒体项拖拽到设备列表投屏 |
+| 多窗口 | 支持 Android 分屏/自由窗口 |
+
+### 4.3 代码复用
+
+| 模块 | 复用方式 |
+|------|----------|
+| `core-server` | 直接依赖，100% 复用 |
+| `MediaScanner` | 复用扫描逻辑 |
+| `NsdHelper` | 复用 mDNS 发现 |
+| `RemoteMediaClient` | 复用远程通信 |
+| `DeviceFavoritesManager` | 复用收藏管理 |
+| `PlayProgressManager` | 复用进度保存 |
+| `PlaybackSpeedManager` | 复用速度管理 |
+| UI 层 | 重新设计布局，适配大屏 |
+
+---
+
+## 5. PC 端设计
+
+### 5.1 技术方案
+
+采用 **纯前端 Web 应用**，通过 HTTP API 与各设备通信：
+
+```
+浏览器 (PC)
+    │
+    ├── GET  /media          获取媒体列表
+    ├── GET  /media/{id}     流式播放（支持 Range）
+    ├── GET  /media/{id}/thumbnail  缩略图
+    └── POST /play           投屏控制
+```
+
+### 5.2 技术栈
+
+| 组件 | 选择 | 说明 |
+|------|------|------|
+| 框架 | Vanilla JS / Vue 3 | 轻量，无需构建也可运行 |
+| 播放器 | HTML5 `<video>` / `<audio>` | 原生支持，无需 ExoPlayer |
+| UI | CSS Grid / Flexbox | 响应式布局 |
+| 设备发现 | mDNS over WebSocket | 需后端桥接或手动输入 |
+| 通信 | Fetch API | HTTP 请求 |
+
+### 5.3 页面结构
+
+```
+web-client/
+├── index.html           主页面
+├── css/
+│   └── style.css        样式
+├── js/
+│   ├── app.js           主逻辑
+│   ├── player.js        播放器
+│   ├── device.js        设备发现/管理
+│   └── api.js           API 封装
+└── assets/
+    └── icons/           图标
+```
+
+### 5.4 核心功能
+
+| 功能 | 实现方式 |
+|------|----------|
+| 媒体浏览 | Fetch `/media` JSON → 渲染列表 |
+| 在线播放 | HTML5 `<video src="http://ip:port/media/{id}">` |
+| 缩略图 | `<img src="http://ip:port/media/{id}/thumbnail">` |
+| 搜索筛选 | 前端 JS 过滤 |
+| 分组浏览 | 前端 JS groupBy |
+| 投屏控制 | Fetch POST `/play` |
+| 进度保存 | localStorage |
+| 深色模式 | CSS media query + toggle |
+
+### 5.5 设备发现方案
+
+PC 浏览器无法直接使用 mDNS，提供两种方案：
+
+**方案 A：手动输入 IP**
+- 用户在 Web 页面输入目标设备 IP:Port
+- 简单可靠，无需额外服务
+
+**方案 B：mDNS 桥接服务**
+- PC 端运行一个轻量 Node.js 服务
+- 使用 `bonjour` / `mdns` 库发现设备
+- 通过 WebSocket 推送设备列表到浏览器
+
+推荐 **方案 A**（简单）+ 后期 **方案 B**（自动发现）。
+
+---
+
+## 6. 开发计划
+
+### 6.1 PAD 端 (v0.3-pad)
+
+| 阶段 | 任务 | 工时 |
+|------|------|------|
+| P1 | 创建 `app-tablet` 模块，双栏布局 | 1 天 |
+| P2 | 媒体列表适配大屏（Grid 布局） | 1 天 |
+| P3 | 底部迷你播放器 | 1 天 |
+| P4 | 投屏/队列/分组功能适配 | 1 天 |
+| P5 | 多窗口/分屏支持 | 0.5 天 |
+| P6 | 测试 + 优化 | 0.5 天 |
+| **合计** | | **5 天** |
+
+### 6.2 PC 端 (v0.3-web)
+
+| 阶段 | 任务 | 工时 |
+|------|------|------|
+| P1 | 项目骨架 + API 封装 | 0.5 天 |
+| P2 | 媒体列表页面 | 1 天 |
+| P3 | 视频/音频播放器 | 1 天 |
+| P4 | 搜索/筛选/分组 | 0.5 天 |
+| P5 | 投屏控制 | 0.5 天 |
+| P6 | 深色模式 + 响应式 | 0.5 天 |
+| P7 | 设备发现（手动输入） | 0.5 天 |
+| P8 | 测试 + 优化 | 0.5 天 |
+| **合计** | | **6 天** |
+
+### 6.3 总时间线
+
+```
+2026-09-20 ─── V3 启动
+2026-09-20 ~ 2026-09-24 ─── PAD 端开发（5 天）
+2026-09-25 ~ 2026-09-30 ─── PC 端开发（6 天）
+2026-10-01 ─── V3 发布
+```
+
+---
+
+## 7. 项目结构变化
+
+```
+HomeMediaViewer-ext/
+├── core-server/          共享服务端（不变）
+├── app/                  Phone 端（Android 手机）
+├── app-tablet/           PAD 端（Android 平板）  ← 新增
+├── web-client/           PC 端（Web 应用）       ← 新增
+├── anaDocs/
+├── prjTracker/
+└── build.gradle.kts
+```
+
+---
+
+## 8. 独立构建与部署
+
+### 8.1 构建命令
+
+| 端 | 构建命令 | 产物 |
+|----|----------|------|
+| Phone | `./gradlew :app:assembleDebug` | `app-debug.apk` |
+| PAD | `./gradlew :app-tablet:assembleDebug` | `app-tablet-debug.apk` |
+| PC | 直接打开 `web-client/index.html` | 浏览器访问 |
+| 共享服务端 | `./gradlew :core-server:build` | JAR 包 |
+
+### 8.2 独立发布
+
+| 端 | 发布方式 |
+|----|----------|
+| Phone | Google Play / APK 直装 |
+| PAD | Google Play / APK 直装 |
+| PC | 部署到任意 Web 服务器 / 本地打开 |
+
+### 8.3 独立测试
+
+| 端 | 测试命令 |
+|----|----------|
+| Phone | `./gradlew :app:test` |
+| PAD | `./gradlew :app-tablet:test` |
+| PC | 浏览器手动测试 |
+| 共享服务端 | `./gradlew :core-server:test` |
+
+---
+
+## 8. 验收标准
+
+### PAD 端
+- [ ] 双栏布局正确显示（左设备/右媒体）
+- [ ] 大屏 Grid 布局（3-4 列）
+- [ ] 底部迷你播放器可操作
+- [ ] 投屏/队列/分组功能正常
+- [ ] 分屏/多窗口支持
+
+### PC 端
+- [ ] Chrome/Edge/Firefox 正常访问
+- [ ] 视频/音频播放流畅
+- [ ] 搜索/筛选/分组正常
+- [ ] 投屏控制正常
+- [ ] 深色模式切换
+- [ ] 响应式布局（1024px+）
+
+---
+
+## 9. 风险与依赖
+
+| 风险 | 影响 | 缓解措施 |
+|------|------|----------|
+| PC 端无法自动发现设备 | 用户需手动输入 IP | 先支持手动输入，后期加 mDNS 桥接 |
+| PAD 端布局适配工作量 | 双栏布局需调试 | 复用 Phone 端逻辑，仅改 UI |
+| Web 播放器兼容性 | 不同浏览器行为差异 | 优先支持 Chrome，其他渐进增强 |
