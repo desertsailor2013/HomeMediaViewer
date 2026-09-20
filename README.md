@@ -126,33 +126,201 @@
 └── prjTracker/                  项目状态记录
 ```
 
-## 构建与运行
+## 快速开始
 
-### Android
+### 1. 获取源码
+
 ```bash
-./gradlew :core-server:test      # 运行服务端单测（22 项）
-./gradlew :app:assembleDebug     # 构建调试 APK
-./gradlew :app:assembleRelease   # 构建 Release APK（含 R8 混淆）
+git clone https://github.com/desertsailor2013/HomeMediaViewer.git
+cd HomeMediaViewer
 ```
 
-### iOS
+### 2. 选择平台构建
+
+#### Android（推荐）
+
+**环境要求：**
+- OpenJDK 17+
+- Android SDK（compileSdk 35）
+- Windows/macOS/Linux
+
+**构建步骤：**
+```bash
+# 运行服务端单元测试（22 项）
+./gradlew :core-server:test
+
+# 构建调试 APK
+./gradlew :app:assembleDebug
+
+# 构建 Release APK（含 R8 混淆）
+./gradlew :app:assembleRelease
+```
+
+**安装与运行：**
+```bash
+# 连接 Android 设备或启动模拟器
+adb install app/build/outputs/apk/debug/app-debug.apk
+
+# 启动应用
+adb shell am start -n com.hmv.app/.MainActivity
+```
+
+**APK 产物位置：**
+- 调试版：`app/build/outputs/apk/debug/app-debug.apk`
+- 发布版：`app/build/outputs/apk/release/app-release.apk`
+
+---
+
+#### iOS
+
+**环境要求：**
+- macOS 12.0+
+- Xcode 15.0+
+- [XcodeGen](https://github.com/yonaskolb/XcodeGen)（用于生成 Xcode 项目）
+
+**安装 XcodeGen：**
+```bash
+# 使用 Homebrew 安装
+brew install xcodegen
+
+# 或使用 Mint 安装
+mint install yonaskolb/XcodeGen
+```
+
+**构建步骤：**
 ```bash
 cd ios-client
-xcodegen generate                # 生成 Xcode 项目
-open HomeMediaViewer.xcodeproj   # 打开 Xcode
+
+# 生成 Xcode 项目
+xcodegen generate
+
+# 打开 Xcode 项目
+open HomeMediaViewer.xcodeproj
 ```
 
-### HarmonyOS
+**在 Xcode 中运行：**
+1. 打开 `HomeMediaViewer.xcodeproj`
+2. 选择目标设备（模拟器或真机）
+3. 点击 `Run` 按钮或按 `Cmd+R`
+4. 首次运行需在 `Signing & Capabilities` 中配置开发者证书
+
+**命令行构建：**
 ```bash
-# 使用 DevEco Studio 打开 harmony-client 目录
-# 编译运行需要 DevEco Studio 5.0+
+# 构建调试版
+xcodebuild -project HomeMediaViewer.xcodeproj -scheme HomeMediaViewer -sdk iphonesimulator -configuration Debug build
+
+# 构建发布版
+xcodebuild -project HomeMediaViewer.xcodeproj -scheme HomeMediaViewer -sdk iphoneos -configuration Release build
 ```
 
-### Web
+---
+
+#### HarmonyOS
+
+**环境要求：**
+- Windows 10/11 或 macOS 12.0+
+- DevEco Studio 5.0+
+- HarmonyOS SDK 5.0+
+
+**安装 DevEco Studio：**
+1. 访问 [华为开发者联盟](https://developer.huawei.com/consumer/cn/deveco-studio/) 下载 DevEco Studio
+2. 安装并配置 HarmonyOS SDK
+
+**构建步骤：**
 ```bash
-# 直接用浏览器打开 web-client/index.html
-# 或使用任何静态文件服务器
+# 打开 DevEco Studio
+# File → Open → 选择 harmony-client 目录
 ```
+
+**在 DevEco Studio 中运行：**
+1. 打开 `harmony-client` 目录
+2. 等待项目同步完成
+3. 选择目标设备（模拟器或真机）
+4. 点击 `Run` 按钮或按 `Shift+F10`
+
+**命令行构建（需配置 SDK 环境）：**
+```bash
+cd harmony-client
+
+# 构建 HAP 包
+hvigorw assembleHap --mode module -p product=default
+```
+
+**产物位置：**
+- `entry/build/default/outputs/default/entry-default-signed.hap`
+
+---
+
+#### Web（最简单）
+
+**环境要求：**
+- 现代浏览器（Chrome 90+ / Firefox 88+ / Safari 15+ / Edge 90+）
+
+**方式一：直接打开**
+```bash
+# Windows
+start web-client/index.html
+
+# macOS
+open web-client/index.html
+
+# Linux
+xdg-open web-client/index.html
+```
+
+**方式二：使用 Python 内置服务器**
+```bash
+cd web-client
+
+# Python 3
+python -m http.server 8000
+
+# 访问 http://localhost:8000
+```
+
+**方式三：使用 Node.js**
+```bash
+# 安装 http-server（全局）
+npm install -g http-server
+
+# 启动服务器
+cd web-client
+http-server -p 8000 -c-1
+
+# 访问 http://localhost:8000
+```
+
+**方式四：使用 VS Code Live Server**
+1. 安装 VS Code 扩展 `Live Server`
+2. 右键点击 `web-client/index.html`
+3. 选择 `Open with Live Server`
+
+---
+
+## 首次使用指南
+
+### Android 端
+1. 安装 APK 到设备
+2. 授予媒体读取权限
+3. 应用自动扫描本地媒体文件
+4. 在设备列表中选择其他设备进行播放
+
+### iOS 端
+1. 在 Xcode 中运行到设备
+2. 授予相册访问权限
+3. 应用自动扫描本地媒体
+4. 发现其他设备后点击连接
+
+### 鸿蒙端
+1. 在 DevEco Studio 中运行
+2. 授予媒体读取权限
+3. 自动扫描并发现局域网设备
+
+### Web 端
+1. 打开浏览器访问页面
+2. 输入设备 IP 和端口连接
+3. 或等待 mDNS 自动发现设备
+4. 点击设备查看媒体列表并播放
 
 ## HTTP API
 
