@@ -26,6 +26,8 @@ const App = {
         Shortcuts.init();
         I18n.init();
         ExportImport.init();
+        NodeManager.init();
+        NodeStats.init();
         this.setupNavigation();
         this.setupToolbar();
         this.setupTheme();
@@ -110,6 +112,8 @@ const App = {
         if (page === 'shortcuts') Shortcuts.render();
         if (page === 'i18n') I18n.render();
         if (page === 'export') ExportImport.render();
+        if (page === 'nodes') NodeManager.renderNodes();
+        if (page === 'nodestats') NodeStats.loadRuntimeStats();
 
         // 关闭移动端菜单
         document.getElementById('sidebar').classList.remove('open');

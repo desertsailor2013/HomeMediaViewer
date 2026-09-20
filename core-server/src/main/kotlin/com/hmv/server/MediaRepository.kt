@@ -108,4 +108,117 @@ interface MediaRepository {
     /** 重新扫描所有路径。 */
     fun rescanAll(): FileOperationResult =
         FileOperationResult(false, "not supported")
+
+    // ========== 管理密码与代理通道 ==========
+
+    /** 获取管理密码（null 表示未设置）。 */
+    fun getAdminPassword(): String? = null
+
+    /** 设置管理密码。 */
+    fun setAdminPassword(password: String): FileOperationResult =
+        FileOperationResult(false, "not supported")
+
+    /** 验证管理密码。 */
+    fun verifyAdminPassword(password: String): Boolean = false
+
+    /** 获取代理通道状态。 */
+    fun getProxyStatus(): ProxyStatus = ProxyStatus(false, null)
+
+    /** 启用代理通道。 */
+    fun enableProxy(password: String): FileOperationResult =
+        FileOperationResult(false, "not supported")
+
+    /** 禁用代理通道。 */
+    fun disableProxy(): FileOperationResult =
+        FileOperationResult(false, "not supported")
+
+    /** 通过代理通道执行文件操作（需验证密码）。 */
+    fun proxyOperation(
+        password: String,
+        operation: String,
+        params: Map<String, String>
+    ): FileOperationResult = FileOperationResult(false, "not supported")
+
+    // ========== 设备信息 ==========
+
+    /** 获取设备类型（phone/pad/pc/harmony/ios/web）。 */
+    fun getDeviceType(): String = "unknown"
+
+    /** 获取设备名称。 */
+    fun getDeviceName(): String = "unknown"
+
+    /** 设置设备信息。 */
+    fun setDeviceInfo(deviceType: String, deviceName: String): FileOperationResult =
+        FileOperationResult(false, "not supported")
+
+    // ========== 运行时统计 ==========
+
+    /** 获取运行时统计信息。 */
+    fun getRuntimeStats(): RuntimeStats = RuntimeStats()
+
+    /** 获取流量统计。 */
+    fun getTrafficStats(): TrafficStats = TrafficStats()
+
+    /** 记录出站流量（本节点媒体被其他节点播放）。 */
+    fun recordOutboundTraffic(bytes: Long, targetHost: String, mediaId: String) {}
+
+    /** 记录入站流量（本节点播放其他节点媒体）。 */
+    fun recordInboundTraffic(bytes: Long, sourceHost: String, mediaId: String) {}
+
+    /** 获取运行日志。 */
+    fun getLogs(limit: Int = 100): List<LogEntry> = emptyList()
+
+    /** 添加日志条目。 */
+    fun addLog(level: String, message: String, source: String = "server") {}
+
+    /** 清空日志。 */
+    fun clearLogs() {}
 }
+
+/**
+ * 运行时统计信息
+ */
+data class RuntimeStats(
+    val uptime: Long = 0,
+    val cpuUsage: Double = 0.0,
+    val memoryUsed: Long = 0,
+    val memoryTotal: Long = 0,
+    val storageUsed: Long = 0,
+    val storageTotal: Long = 0,
+    val batteryLevel: Int = -1,
+    val batteryCharging: Boolean = false,
+    val networkUpload: Long = 0,
+    val networkDownload: Long = 0,
+    val activeConnections: Int = 0,
+    val totalRequests: Long = 0
+)
+
+/**
+ * 流量统计
+ */
+data class TrafficStats(
+    val totalOutbound: Long = 0,
+    val totalInbound: Long = 0,
+    val outboundByDevice: Map<String, Long> = emptyMap(),
+    val inboundByDevice: Map<String, Long> = emptyMap(),
+    val outboundByMedia: Map<String, Long> = emptyMap(),
+    val inboundByMedia: Map<String, Long> = emptyMap()
+)
+
+/**
+ * 日志条目
+ */
+data class LogEntry(
+    val timestamp: Long,
+    val level: String,
+    val message: String,
+    val source: String
+)
+
+/**
+ * 代理通道状态
+ */
+data class ProxyStatus(
+    val enabled: Boolean,
+    val password: String? = null
+)
