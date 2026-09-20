@@ -58,6 +58,10 @@
                 <span class="nav-icon">&#128228;</span>
                 <span class="nav-text" data-i18n="nav.export">数据导出</span>
             </a>
+            <a href="#" class="nav-item" data-page="nodes">
+                <span class="nav-icon">&#128241;</span>
+                <span class="nav-text" data-i18n="nav.nodes">节点管理</span>
+            </a>
             <a href="#" class="nav-item" data-page="settings">
                 <span class="nav-icon">&#9881;</span>
                 <span class="nav-text" data-i18n="nav.settings">设置</span>
@@ -375,6 +379,19 @@
                 </div>
             </div>
 
+            <!-- ===== 节点管理页面 ===== -->
+            <div id="page-nodes" class="page">
+                <div class="page-header">
+                    <h3>设备节点管理</h3>
+                    <div class="page-actions">
+                        <button id="btn-refresh-nodes" class="btn-secondary">刷新节点</button>
+                    </div>
+                </div>
+                <div id="node-list-container" class="list-container">
+                    <div class="empty-hint"><p>暂无设备节点</p></div>
+                </div>
+            </div>
+
             <!-- ===== 数据导出页面 ===== -->
             <div id="page-export" class="page">
                 <div class="page-header">
@@ -579,6 +596,45 @@
         </div>
     </div>
 
+    <!-- 节点认证弹窗 -->
+    <div id="node-auth-dialog" class="dialog hidden">
+        <div class="dialog-content">
+            <div class="dialog-header">
+                <h3>节点认证</h3>
+                <button id="btn-close-auth-dialog" class="btn-icon">&times;</button>
+            </div>
+            <div class="dialog-body">
+                <p>请输入管理密码以访问节点 <span id="auth-node-name" class="highlight"></span></p>
+                <div class="auth-form">
+                    <input type="password" id="auth-password" placeholder="管理密码">
+                    <div id="auth-error" class="error-text"></div>
+                    <button id="btn-submit-auth" class="btn-primary">验证</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 节点资源管理弹窗 -->
+    <div id="node-resource-dialog" class="dialog hidden">
+        <div class="dialog-content dialog-large">
+            <div class="dialog-header">
+                <h3>资源管理 - <span id="resource-node-name"></span></h3>
+                <button id="btn-close-resource-dialog" class="btn-icon">&times;</button>
+            </div>
+            <div class="dialog-body">
+                <div class="resource-toolbar">
+                    <input type="file" id="node-file-input" style="display: none;">
+                    <button id="btn-upload-node-file" class="btn-primary">上传文件</button>
+                    <button id="btn-new-node-folder" class="btn-secondary">新建文件夹</button>
+                    <button id="btn-rescan-node" class="btn-secondary">重新扫描</button>
+                </div>
+                <div id="node-resources-container" class="resources-container">
+                    <div class="empty-hint"><p>加载中...</p></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="js/api.js"></script>
     <script src="js/player.js"></script>
     <script src="js/device.js"></script>
@@ -594,6 +650,7 @@
     <script src="js/settings.js"></script>
     <script src="js/environment.js"></script>
     <script src="js/mobile-app.js"></script>
+    <script src="js/node-manager.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

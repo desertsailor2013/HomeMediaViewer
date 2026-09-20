@@ -40,9 +40,11 @@ class HttpRangeServer(
         private const val STATUS_RANGE_416 = "416 Range Not Satisfiable"
         private const val STATUS_NOT_FOUND = "404 Not Found"
         private const val STATUS_BAD_REQUEST = "400 Bad Request"
+        private const val STATUS_UNAUTHORIZED = "401 Unauthorized"
         private val THUMBNAIL_PATTERN = Regex("^/media/[^/]+/thumbnail$")
         private val RENAME_PATTERN = Regex("^/media/[^/]+/rename$")
         private val SCAN_PATH_PATTERN = Regex("^/scanpaths/.*$")
+        private val PROXY_PATTERN = Regex("^/proxy/.*$")
     }
 
     private val serverSocket = ServerSocket(port)
@@ -103,6 +105,11 @@ class HttpRangeServer(
                     request.method == "POST" && request.path.matches(RENAME_PATTERN) -> handleRename(out, request)
                     request.method == "POST" && request.path == "/scanpaths" -> handleAddScanPath(out, request)
                     request.method == "POST" && request.path == "/scanpaths/rescan" -> handleRescanAll(out, request)
+                    request.method == "POST" && request.path == "/admin/password" -> handleSetAdminPassword(out, request)
+                    request.method == "POST" && request.path == "/admin/verify" -> handleVerifyAdminPassword(out, request)
+                    request.method == "POST" && request.path == "/proxy/enable" -> handleEnableProxy(out, request)
+                    request.method == "POST" && request.path == "/proxy/disable" -> handleDisableProxy(out, request)
+                    request.method == "POST" && request.path.matches(PROXY_PATTERN) && request.path.endsWith("/operation") -> handleProxyOperation(out, request)
 
                     // DELETE 端点
                     request.method == "DELETE" && request.path.startsWith("/media/") -> handleDelete(out, request)
@@ -111,6 +118,8 @@ class HttpRangeServer(
                     // GET 端点
                     request.path == "/media" || request.path == "/media/" -> handleList(out, request)
                     request.path == "/scanpaths" -> handleGetScanPaths(out, request)
+                    request.path == "/admin/password" -> handleGetAdminPassword(out, request)
+                    request.path == "/proxy/status" -> handleGetProxyStatus(out, request)
                     request.path.matches(THUMBNAIL_PATTERN) -> handleThumbnail(out, request)
                     request.path.startsWith("/media/") -> handleStream(out, bufferSize, request)
                     else -> writeStatus(out, STATUS_NOT_FOUND)
@@ -538,6 +547,134 @@ class HttpRangeServer(
             val response = """{"status":"error","message":"${escapeJson(result.message)}"}"""
             writeResponse(out, STATUS_BAD_REQUEST, MIME_JSON, response.toByteArray().size.toLong(), response.toByteArray())
         }
+    }
+
+    // ---------- 管理密码 ----------
+
+    private fun handleGetAdminPassword(out: OutputStream, request: HttpRequest) {
+        val password = repository.getAdminPassword()
+        val hasPassword = password != null && password.isNotEmpty()
+        val response = """{"hasPassword":$hasPassword}"""
+        writeResponse(out, STATUS_OK, MIME_JSON, response.toByteArray().size.toLong(), response.toByteArray())
+    }
+
+    private fun handleSetAdminPassword(out: OutputStream, request: HttpRequest) {
+        val password = extractJsonString(request.body, "password") ?: ""
+        if (password.isEmpty()) {
+            writeStatus(out, STATUS_BAD_REQUEST)
+            return
+        }
+        val result = repository.setAdminPassword(password)
+        if (result.success) {
+            val response = """{"status":"ok","message":"${escapeJson(result.message)}"}"""
+            writeResponse(out, STATUS_OK, MIME_JSON, response.toByteArray().size.toLong(), response.toByteArray())
+        } else {
+            val response = """{"status":"error","message":"${escapeJson(result.message)}"}"""
+            writeResponse(out, STATUS_BAD_REQUEST, MIME_JSON, response.toByteArray().size.toLong(), response.toByteArray())
+        }
+    }
+
+    private fun handleVerifyAdminPassword(out: OutputStream, request: HttpRequest) {
+        val password = extractJsonString(request.body, "password") ?: ""
+        if (password.isEmpty()) {
+            writeStatus(out, STATUS_BAD_REQUEST)
+            return
+        }
+        val valid = repository.verifyAdminPassword(password)
+        val response = """{"valid":$valid}"""
+        writeResponse(out, STATUS_OK, MIME_JSON, response.toByteArray().size.toLong(), response.toByteArray())
+    }
+
+    // ---------- 代理通道 ----------
+
+    private fun handleGetProxyStatus(out: OutputStream, request: HttpRequest) {
+        val status = repository.getProxyStatus()
+        val hasPassword = status.password != null && status.password.isNotEmpty()
+        val response = """{"enabled":${status.enabled},"hasPassword":$hasPassword}"""
+        writeResponse(out, STATUS_OK, MIME_JSON, response.toByteArray().size.toLong(), response.toByteArray())
+    }
+
+    private fun handleEnableProxy(out: OutputStream, request: HttpRequest) {
+        val password = extractJsonString(request.body, "password") ?: ""
+        if (password.isEmpty()) {
+            writeStatus(out, STATUS_BAD_REQUEST)
+            return
+        }
+        val result = repository.enableProxy(password)
+        if (result.success) {
+            val response = """{"status":"ok","message":"${escapeJson(result.message)}"}"""
+            writeResponse(out, STATUS_OK, MIME_JSON, response.toByteArray().size.toLong(), response.toByteArray())
+        } else {
+            val response = """{"status":"error","message":"${escapeJson(result.message)}"}"""
+            writeResponse(out, STATUS_BAD_REQUEST, MIME_JSON, response.toByteArray().size.toLong(), response.toByteArray())
+        }
+    }
+
+    private fun handleDisableProxy(out: OutputStream, request: HttpRequest) {
+        val result = repository.disableProxy()
+        if (result.success) {
+            val response = """{"status":"ok"}"""
+            writeResponse(out, STATUS_OK, MIME_JSON, response.toByteArray().size.toLong(), response.toByteArray())
+        } else {
+            val response = """{"status":"error","message":"${escapeJson(result.message)}"}"""
+            writeResponse(out, STATUS_BAD_REQUEST, MIME_JSON, response.toByteArray().size.toLong(), response.toByteArray())
+        }
+    }
+
+    private fun handleProxyOperation(out: OutputStream, request: HttpRequest) {
+        // 从 URL 提取设备地址 /proxy/{deviceAddress}/operation
+        val pathAfterProxy = request.path.removePrefix("/proxy/")
+        val deviceAddress = pathAfterProxy.removeSuffix("/operation")
+        
+        if (deviceAddress.isEmpty()) {
+            writeStatus(out, STATUS_BAD_REQUEST)
+            return
+        }
+
+        val password = extractJsonString(request.body, "password") ?: ""
+        val operation = extractJsonString(request.body, "operation") ?: ""
+        val paramsJson = extractJsonObject(request.body, "params") ?: "{}"
+
+        if (password.isEmpty() || operation.isEmpty()) {
+            writeStatus(out, STATUS_BAD_REQUEST)
+            return
+        }
+
+        // 验证密码
+        if (!repository.verifyAdminPassword(password)) {
+            val response = """{"status":"error","message":"Invalid password"}"""
+            writeResponse(out, STATUS_UNAUTHORIZED, MIME_JSON, response.toByteArray().size.toLong(), response.toByteArray())
+            return
+        }
+
+        // 解析 params
+        val params = parseJsonMap(paramsJson)
+
+        // 执行代理操作
+        val result = repository.proxyOperation(password, operation, params)
+        if (result.success) {
+            val response = """{"status":"ok","message":"${escapeJson(result.message)}","id":"${escapeJson(result.id ?: "")}"}"""
+            writeResponse(out, STATUS_OK, MIME_JSON, response.toByteArray().size.toLong(), response.toByteArray())
+        } else {
+            val response = """{"status":"error","message":"${escapeJson(result.message)}"}"""
+            writeResponse(out, STATUS_BAD_REQUEST, MIME_JSON, response.toByteArray().size.toLong(), response.toByteArray())
+        }
+    }
+
+    private fun parseJsonMap(json: String): Map<String, String> {
+        val result = mutableMapOf<String, String>()
+        val pattern = "\"([^\"]+)\"\\s*:\\s*\"([^\"]*)\""
+        val regex = Regex(pattern)
+        regex.findAll(json).forEach { match ->
+            result[match.groupValues[1]] = match.groupValues[2]
+        }
+        return result
+    }
+
+    private fun extractJsonObject(json: String, key: String): String? {
+        val pattern = "\"$key\"\\s*:\\s*\\{([^}]*)\\}"
+        val regex = Regex(pattern)
+        return regex.find(json)?.groupValues?.get(1)?.let { "{$it}" }
     }
 
     // ---------- 缩略图 ----------

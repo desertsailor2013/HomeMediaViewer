@@ -108,4 +108,42 @@ interface MediaRepository {
     /** 重新扫描所有路径。 */
     fun rescanAll(): FileOperationResult =
         FileOperationResult(false, "not supported")
+
+    // ========== 管理密码与代理通道 ==========
+
+    /** 获取管理密码（null 表示未设置）。 */
+    fun getAdminPassword(): String? = null
+
+    /** 设置管理密码。 */
+    fun setAdminPassword(password: String): FileOperationResult =
+        FileOperationResult(false, "not supported")
+
+    /** 验证管理密码。 */
+    fun verifyAdminPassword(password: String): Boolean = false
+
+    /** 获取代理通道状态。 */
+    fun getProxyStatus(): ProxyStatus = ProxyStatus(false, null)
+
+    /** 启用代理通道。 */
+    fun enableProxy(password: String): FileOperationResult =
+        FileOperationResult(false, "not supported")
+
+    /** 禁用代理通道。 */
+    fun disableProxy(): FileOperationResult =
+        FileOperationResult(false, "not supported")
+
+    /** 通过代理通道执行文件操作（需验证密码）。 */
+    fun proxyOperation(
+        password: String,
+        operation: String,
+        params: Map<String, String>
+    ): FileOperationResult = FileOperationResult(false, "not supported")
 }
+
+/**
+ * 代理通道状态
+ */
+data class ProxyStatus(
+    val enabled: Boolean,
+    val password: String? = null
+)
