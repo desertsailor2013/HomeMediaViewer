@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HomeMediaViewer</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <header class="navbar">
+        <div class="navbar-brand">
+            <span class="logo">&#9654;</span>
+            <h1>HomeMediaViewer</h1>
+        </div>
+        <div class="navbar-actions">
+            <button id="btn-theme" class="btn-icon" title="切换主题">&#9789;</button>
+        </div>
+    </header>
+
+    <!-- 连接栏 -->
+    <div class="connect-bar">
+        <div class="connect-form">
+            <input type="text" id="input-host" placeholder="设备 IP" value="127.0.0.1">
+            <input type="number" id="input-port" placeholder="端口" value="8080">
+            <button id="btn-connect" class="btn-primary">连接</button>
+            <span id="connect-status" class="status-text"></span>
+        </div>
+    </div>
+
+    <!-- 主内容区 -->
+    <main class="main-content">
+        <!-- 搜索与筛选 -->
+        <div class="toolbar">
+            <div class="search-box">
+                <input type="text" id="search-input" placeholder="搜索文件名...">
+            </div>
+            <div class="filter-buttons">
+                <button class="filter-btn active" data-filter="all">全部</button>
+                <button class="filter-btn" data-filter="video">视频</button>
+                <button class="filter-btn" data-filter="audio">音频</button>
+            </div>
+            <div class="view-buttons">
+                <button id="btn-group" class="btn-toggle" title="分组/平铺">&#9776; 分组</button>
+            </div>
+        </div>
+
+        <!-- 媒体列表 -->
+        <div id="media-container" class="media-container">
+            <div id="empty-hint" class="empty-hint">
+                <p>请先连接设备</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- 播放器面板 -->
+    <div id="player-panel" class="player-panel hidden">
+        <div class="player-header">
+            <span id="player-title" class="player-title">未播放</span>
+            <button id="btn-close-player" class="btn-icon">&times;</button>
+        </div>
+        <div class="player-body">
+            <video id="video-player" controls></video>
+            <audio id="audio-player" controls></audio>
+        </div>
+        <div class="player-footer">
+            <button id="btn-cast" class="btn-secondary" title="投屏到其他设备">&#9673; 投屏</button>
+            <span id="player-speed" class="speed-label">1.0x</span>
+        </div>
+    </div>
+
+    <!-- 投屏设备选择弹窗 -->
+    <div id="cast-dialog" class="dialog hidden">
+        <div class="dialog-content">
+            <div class="dialog-header">
+                <h3>选择投屏设备</h3>
+                <button id="btn-close-dialog" class="btn-icon">&times;</button>
+            </div>
+            <div class="dialog-body">
+                <div class="cast-form">
+                    <input type="text" id="cast-host" placeholder="目标设备 IP">
+                    <input type="number" id="cast-port" placeholder="端口" value="8080">
+                    <button id="btn-send-cast" class="btn-primary">发送</button>
+                </div>
+                <div id="cast-status" class="cast-status"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/device.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

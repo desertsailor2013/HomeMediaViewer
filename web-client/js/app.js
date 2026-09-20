@@ -1,0 +1,298 @@
+/**
+ * 主应用模块
+ * 协调各模块工作
+ */
+const App = {
+    allMediaItems: [],
+    displayItems: [],
+    searchQuery: '',
+    typeFilter: 'all',
+    groupByFolder: false,
+    collapsedFolders: new Set(),
+
+    /**
+     * 初始化应用
+     */
+    init() {
+        Device.init();
+        Player.init();
+        this.setupToolbar();
+        this.setupTheme();
+        this.setupCastDialog();
+    },
+
+    /**
+     * 设备连接成功回调
+     */
+    async onDeviceConnected() {
+        try {
+            this.allMediaItems = await API.getMediaList();
+            this.applyFilter();
+        } catch (e) {
+            console.error('获取媒体列表失败:', e);
+        }
+    },
+
+    /**
+     * 设置工具栏
+     */
+    setupToolbar() {
+        // 搜索
+        const searchInput = document.getElementById('search-input');
+        searchInput.addEventListener('input', (e) => {
+            this.searchQuery = e.target.value.trim();
+            this.applyFilter();
+        });
+
+        // 筛选按钮
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                this.typeFilter = e.target.dataset.filter;
+                this.applyFilter();
+            });
+        });
+
+        // 分组按钮
+        document.getElementById('btn-group').addEventListener('click', (e) => {
+            this.groupByFolder = !this.groupByFolder;
+            e.target.classList.toggle('active', this.groupByFolder);
+            this.applyFilter();
+        });
+    },
+
+    /**
+     * 应用过滤和渲染
+     */
+    applyFilter() {
+        // 过滤
+        let filtered = this.allMediaItems.filter(item => {
+            const matchesQuery = !this.searchQuery ||
+                (item.title && item.title.toLowerCase().includes(this.searchQuery.toLowerCase()));
+            const matchesType = this.typeFilter === 'all' ||
+                (this.typeFilter === 'video' && item.mimeType && item.mimeType.startsWith('video')) ||
+                (this.typeFilter === 'audio' && item.mimeType && item.mimeType.startsWith('audio'));
+            return matchesQuery && matchesType;
+        });
+
+        // 渲染
+        const container = document.getElementById('media-container');
+        const emptyHint = document.getElementById('empty-hint');
+
+        if (filtered.length === 0) {
+            container.innerHTML = '';
+            container.appendChild(emptyHint);
+            emptyHint.style.display = 'block';
+            emptyHint.querySelector('p').textContent = this.allMediaItems.length === 0 ?
+                '暂无媒体文件' : '无匹配结果';
+            return;
+        }
+
+        emptyHint.style.display = 'none';
+
+        if (this.groupByFolder) {
+            this.renderGrouped(container, filtered);
+        } else {
+            this.renderFlat(container, filtered);
+        }
+    },
+
+    /**
+     * 渲染平铺视图
+     */
+    renderFlat(container, items) {
+        container.innerHTML = '';
+        const grid = this.createGrid(items);
+        container.appendChild(grid);
+    },
+
+    /**
+     * 渲染分组视图
+     */
+    renderGrouped(container, items) {
+        container.innerHTML = '';
+
+        // 按文件夹分组
+        const grouped = {};
+        items.forEach(item => {
+            const folder = item.folderName || '未分类';
+            if (!grouped[folder]) grouped[folder] = [];
+            grouped[folder].push(item);
+        });
+
+        // 排序
+        const sortedFolders = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
+
+        sortedFolders.forEach(folder => {
+            const folderItems = grouped[folder];
+            const collapsed = this.collapsedFolders.has(folder);
+
+            // Header
+            const header = document.createElement('div');
+            header.className = `folder-header ${collapsed ? 'collapsed' : ''}`;
+            header.innerHTML = `
+                <span class="arrow">&#9660;</span>
+                <span class="folder-name">${folder}</span>
+                <span class="folder-count">(${folderItems.length})</span>
+            `;
+            header.addEventListener('click', () => {
+                this.toggleFolder(folder);
+            });
+            container.appendChild(header);
+
+            // 内容
+            if (!collapsed) {
+                const grid = this.createGrid(folderItems);
+                container.appendChild(grid);
+            }
+        });
+    },
+
+    /**
+     * 创建媒体网格
+     */
+    createGrid(items) {
+        const grid = document.createElement('div');
+        grid.className = 'media-grid';
+
+        items.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'media-card';
+
+            const thumbnailUrl = item.thumbnailUri || '';
+            const isAudio = item.mimeType && item.mimeType.startsWith('audio');
+
+            card.innerHTML = `
+                <div class="thumbnail">
+                    ${thumbnailUrl ?
+                        `<img src="${thumbnailUrl}" alt="" onerror="this.parentElement.innerHTML='${isAudio ? '&#9835;' : '&#9654;'}'">` :
+                        (isAudio ? '&#9835;' : '&#9654;')
+                    }
+                </div>
+                <div class="card-info">
+                    <div class="card-title" title="${item.title || ''}">${item.title || '未知标题'}</div>
+                    <div class="card-meta">${this.formatSize(item.size)}</div>
+                </div>
+            `;
+
+            card.addEventListener('click', () => {
+                Player.play(item);
+            });
+
+            grid.appendChild(card);
+        });
+
+        return grid;
+    },
+
+    /**
+     * 切换分组折叠
+     */
+    toggleFolder(folder) {
+        if (this.collapsedFolders.has(folder)) {
+            this.collapsedFolders.delete(folder);
+        } else {
+            this.collapsedFolders.add(folder);
+        }
+        this.applyFilter();
+    },
+
+    /**
+     * 格式化文件大小
+     */
+    formatSize(bytes) {
+        if (!bytes) return '';
+        if (bytes < 1024) return `${bytes} B`;
+        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+        if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+        return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+    },
+
+    /**
+     * 设置深色模式
+     */
+    setupTheme() {
+        const btn = document.getElementById('btn-theme');
+        const saved = localStorage.getItem('hmv_theme');
+        if (saved === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+
+        btn.addEventListener('click', () => {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            if (isDark) {
+                document.documentElement.removeAttribute('data-theme');
+                localStorage.setItem('hmv_theme', 'light');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                localStorage.setItem('hmv_theme', 'dark');
+            }
+        });
+    },
+
+    /**
+     * 设置投屏弹窗
+     */
+    setupCastDialog() {
+        const dialog = document.getElementById('cast-dialog');
+        const castBtn = document.getElementById('btn-cast');
+        const closeBtn = document.getElementById('btn-close-dialog');
+        const sendBtn = document.getElementById('btn-send-cast');
+        const statusEl = document.getElementById('cast-status');
+
+        castBtn.addEventListener('click', () => {
+            dialog.classList.remove('hidden');
+        });
+
+        closeBtn.addEventListener('click', () => {
+            dialog.classList.add('hidden');
+            statusEl.textContent = '';
+            statusEl.className = 'cast-status';
+        });
+
+        dialog.addEventListener('click', (e) => {
+            if (e.target === dialog) {
+                dialog.classList.add('hidden');
+            }
+        });
+
+        sendBtn.addEventListener('click', async () => {
+            const host = document.getElementById('cast-host').value.trim();
+            const port = parseInt(document.getElementById('cast-port').value);
+            const media = Player.getCurrentMedia();
+
+            if (!host || !port) {
+                statusEl.textContent = '请输入目标设备 IP 和端口';
+                statusEl.className = 'cast-status error';
+                return;
+            }
+
+            if (!media) {
+                statusEl.textContent = '请先播放一个媒体文件';
+                statusEl.className = 'cast-status error';
+                return;
+            }
+
+            try {
+                const player = document.getElementById('video-player').classList.contains('active') ?
+                    document.getElementById('video-player') :
+                    document.getElementById('audio-player');
+
+                await API.sendCastCommand(host, port, media.id, media.title || '', player.currentTime * 1000);
+                statusEl.textContent = '投屏成功';
+                statusEl.className = 'cast-status success';
+                setTimeout(() => {
+                    dialog.classList.add('hidden');
+                    statusEl.textContent = '';
+                }, 1500);
+            } catch (e) {
+                statusEl.textContent = '投屏失败: ' + e.message;
+                statusEl.className = 'cast-status error';
+            }
+        });
+    }
+};
+
+// 启动应用
+document.addEventListener('DOMContentLoaded', () => App.init());
