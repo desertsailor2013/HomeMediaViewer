@@ -2,13 +2,19 @@
 
 局域网内多台设备（Android/iOS/鸿蒙/Web）互相发现、浏览、点播彼此的音视频文件，无需拷贝源文件。
 
+**平台角色说明：**
+- **Android** — 既可提供媒体服务（HTTP Server），也可浏览其他设备
+- **iOS** — 既可提供媒体服务（HTTP Server），也可浏览其他设备
+- **鸿蒙** — 既可提供媒体服务（HTTP Server），也可浏览其他设备
+- **Web** — 浏览其他设备（依赖其他设备的 HTTP Server）
+
 ## 功能特性
 
 ### 核心功能（全平台）
 - **mDNS 设备自动发现** — 基于 `_hmv._tcp.` 服务类型，局域网内设备自动注册与发现
-- **HTTP + Range 流媒体服务** — 轻量内嵌 ServerSocket，支持整流/分段请求，拖动进度条自动触发 Range 206
+- **HTTP + Range 流媒体服务** — 轻量内嵌 ServerSocket，支持整流/分段请求，拖动进度条自动触发 Range 206（Android/iOS 提供）
 - **跨设备播放** — 选择发现的远程设备，获取其媒体列表并直接流式播放
-- **缩略图展示** — 视频帧/音频封面自动生成与异步加载
+- **缩略图展示** — 视频帧/音频封面自动生成与异步加载（Android/iOS 提供，需设备端支持）
 - **播放进度保存** — 自动记录播放位置，再次打开自动续播
 - **搜索与筛选** — 按文件名搜索，按类型（全部/视频/音频）筛选
 - **深色模式** — 支持亮色/暗色主题自动切换
@@ -43,7 +49,7 @@
 - **全局搜索** — 跨设备搜索媒体文件（数据层实现）
 
 ### 媒体信息增强
-- **媒体元数据** — 显示标题/艺术家/专辑/时长/分辨率/码率/编码/格式（从文件自动提取）
+- **媒体元数据** — 显示标题/艺术家/专辑/时长/分辨率/码率/编码/格式（基础字段从文件名提取，完整元数据需媒体解析库）
 - **海报墙展示** — 显示媒体海报/封面（待实现）
 - **标签系统** — 支持媒体标签分类（自动生成标签）
 - **字幕支持** — 显示关联的字幕文件（待实现）
@@ -65,11 +71,15 @@
 - **PHPhotoLibrary 媒体扫描** — 本地视频/音频扫描
 - **AVPlayer 播放** — 原生播放器 + AirPlay 投屏
 - **SwiftUI 界面** — 现代化声明式 UI
+- **HTTP Server** — 基于 NWListener 的流媒体服务
+- **mDNS 服务注册** — 自动注册到局域网供其他设备发现
 
 ### 鸿蒙端专属
 - **MediaKit 媒体扫描** — PhotoAccessHelper 本地媒体访问
 - **AVPlayer 播放** — 原生播放器 + Cast 投屏
 - **ArkTS 声明式 UI** — ArkUI 组件化界面
+- **HTTP Server** — 基于原生 Socket API 的流媒体服务
+- **mDNS 服务注册** — 自动注册到局域网供其他设备发现
 
 ## 技术栈
 
@@ -443,18 +453,22 @@ http-server -p 8000 -c-1
 | `READ_MEDIA_VIDEO` / `READ_MEDIA_AUDIO` | API 33+ 媒体文件读取 |
 | `READ_EXTERNAL_STORAGE` | API ≤ 32 媒体文件读取 |
 | `FOREGROUND_SERVICE` | HTTP 服务后台常驻 |
+| `FOREGROUND_SERVICE_DATA_SYNC` | 数据同步前台服务 |
 
 ### iOS
 | 权限 | 用途 |
 |------|------|
 | `NSPhotoLibraryUsageDescription` | 访问相册媒体文件 |
 | `NSLocalNetworkUsageDescription` | 局域网通信 |
+| `NSBonjourServices` | mDNS 服务发现（`_hmv._tcp`） |
 
 ### HarmonyOS
-| 权限 | 用途 |
-|------|------|
-| `ohos.permission.READ_MEDIA` | 读取媒体文件 |
-| `ohos.permission.INTERNET` | 网络通信 |
+| 权限 | 用途 | 声明方式 |
+|------|------|----------|
+| `ohos.permission.INTERNET` | 网络通信 | module.json5 静态声明 |
+| `ohos.permission.READ_MEDIA` | 读取媒体文件 | 运行时动态请求 |
+| `ohos.permission.GET_NETWORK_INFO` | 获取网络状态 | module.json5 静态声明 |
+| `ohos.permission.SET_NETWORK_INFO` | 设置网络配置 | module.json5 静态声明 |
 
 ## 安全特性
 

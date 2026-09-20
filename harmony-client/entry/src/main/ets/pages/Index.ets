@@ -4,6 +4,7 @@ import { RemoteMediaClient } from '../common/RemoteMediaClient';
 import { FavoritesManager, FavoriteDevice } from '../common/FavoritesManager';
 import { MediaScanner } from '../common/MediaScanner';
 import { NsdHelper, DeviceListener } from '../common/NsdHelper';
+import { mediaServerService } from '../common/MediaServerService';
 import { MediaItem, DiscoveredDevice } from '../model/MediaModels';
 
 @Entry
@@ -33,7 +34,9 @@ struct Index {
   }
 
   aboutToDisappear(): void {
+    this.nsdHelper.unregisterService();
     this.nsdHelper.stopDiscovery();
+    mediaServerService.stop();
   }
 
   private async startServerAsync(): Promise<void> {
@@ -47,7 +50,24 @@ struct Index {
     this.status = '正在扫描媒体...';
     let items = await this.scanner.scanAll();
     this.mediaItems = items;
-    this.status = `本机媒体 - ${items.length} 个文件`;
+    
+    // 启动 HTTP 服务器
+    this.status = '正在启动 HTTP 服务器...';
+    mediaServerService.setMediaItems(items);
+    let serverStarted = await mediaServerService.start();
+    if (serverStarted) {
+      this.status = `本机媒体 - ${items.length} 个文件 (HTTP 服务: ${mediaServerService.getPort()})`;
+      
+      // 注册 mDNS 服务
+      this.registerNsdService();
+    } else {
+      this.status = `本机媒体 - ${items.length} 个文件 (HTTP 服务器启动失败)`;
+    }
+  }
+
+  private registerNsdService(): void {
+    let port = mediaServerService.getPort();
+    this.nsdHelper.registerService(port);
   }
 
   private startDeviceDiscovery(): void {

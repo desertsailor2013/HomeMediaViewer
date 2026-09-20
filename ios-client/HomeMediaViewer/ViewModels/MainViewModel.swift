@@ -25,6 +25,7 @@ class MainViewModel: ObservableObject {
     let favoritesManager = FavoritesManager()
     private let mediaScanner = MediaScanner()
     private var nsdHelper: NsdHelper?
+    private let mediaServerService = MediaServerService.shared
     private var expandedFolders: Set<String> = []
     private var cancellables = Set<AnyCancellable>()
     
@@ -34,12 +35,30 @@ class MainViewModel: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] items in
                 self?.mediaItems = items
-                self?.status = "本机媒体 - \(items.count) 个文件"
+                self?.startHttpServer(items: items)
             }
             .store(in: &cancellables)
         
         startDeviceDiscovery()
         loadLocalMedia()
+    }
+    
+    /// 启动 HTTP 服务器
+    private func startHttpServer(items: [MediaItem]) {
+        guard !mediaServerService.isRunning else { return }
+        
+        status = "正在启动 HTTP 服务器..."
+        mediaServerService.setMediaItems(items)
+        
+        if mediaServerService.start() {
+            let port = mediaServerService.getPort()
+            status = "本机媒体 - \(items.count) 个文件 (HTTP 服务: \(port))"
+            
+            // 注册 mDNS 服务
+            nsdHelper?.registerService(port: Int(port))
+        } else {
+            status = "本机媒体 - \(items.count) 个文件 (HTTP 服务器启动失败)"
+        }
     }
     
     /// 加载本地媒体

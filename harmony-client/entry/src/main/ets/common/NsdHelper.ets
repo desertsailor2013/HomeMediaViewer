@@ -123,4 +123,51 @@ export class NsdHelper {
     this.discoveredDevices.clear();
     this.listener = null;
   }
+
+  /**
+   * 注册 mDNS 服务（使本设备可被发现）
+   */
+  registerService(port: number): void {
+    let serviceInfo: nsdManager.ServiceInfo = {
+      serviceName: SERVICE_NAME,
+      serviceType: SERVICE_TYPE,
+      port: port,
+      txtRecord: {
+        'deviceType': 'phone',
+        'version': '1.0'
+      }
+    };
+
+    nsdManager.createRegistrationService(this.context, (err, registration) => {
+      if (err) {
+        console.error(TAG, `createRegistrationService failed: ${err.message}`);
+        return;
+      }
+
+      registration.registerService(serviceInfo, (err) => {
+        if (err) {
+          console.error(TAG, `registerService failed: ${err.message}`);
+        } else {
+          console.info(TAG, `Service registered: ${SERVICE_NAME} on port ${port}`);
+        }
+      });
+    });
+  }
+
+  /**
+   * 注销 mDNS 服务
+   */
+  unregisterService(): void {
+    nsdManager.createRegistrationService(this.context, (err, registration) => {
+      if (err) {
+        return;
+      }
+      registration.unregisterService((err) => {
+        if (err) {
+          console.error(TAG, `unregisterService failed: ${err.message}`);
+        }
+      });
+      registration.destroy();
+    });
+  }
 }

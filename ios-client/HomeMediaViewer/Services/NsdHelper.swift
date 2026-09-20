@@ -114,4 +114,40 @@ class NsdHelper: ObservableObject {
         browser = nil
         discoveredDevices.removeAll()
     }
+    
+    /// 注册 mDNS 服务（使本设备可被发现）
+    func registerService(port: Int) {
+        let listener: NWListener
+        do {
+            let params = NWParameters()
+            params.includePeerToPeer = true
+            listener = try NWListener(using: params, on: NWEndpoint.Port(rawValue: UInt16(port))!)
+        } catch {
+            print("Failed to create listener: \(error)")
+            return
+        }
+        
+        listener.service = NWListener.Service(
+            name: "HomeMediaViewer",
+            type: serviceType,
+            txtRecord: NWTXTRecord(["deviceType": "phone", "version": "1.0"])
+        )
+        
+        listener.stateUpdateHandler = { state in
+            switch state {
+            case .ready:
+                print("Service registered on port \(port)")
+            case .failed(let error):
+                print("Service registration failed: \(error)")
+            default:
+                break
+            }
+        }
+        
+        listener.newConnectionHandler = { connection in
+            connection.cancel()
+        }
+        
+        listener.start(queue: .global())
+    }
 }

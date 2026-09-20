@@ -28,4 +28,4 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.hmv.HomeMediaViewer
         INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "需要访问照片库以扫描本地媒体文件"
         INFOPLIST_KEY_NSLocalNetworkUsageDescription: "需要访问本地网络以连接其他设备"
-        INFOPLIST_KEY_NSBonjourServices: "_hmv._tcp"
+        INFOPLIST_KEY_NSBonjourServices: ["_hmv._tcp"]

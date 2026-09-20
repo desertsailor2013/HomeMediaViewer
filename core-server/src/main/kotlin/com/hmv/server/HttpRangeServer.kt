@@ -114,6 +114,7 @@ class HttpRangeServer(
                     request.method == "POST" && request.path == "/logs/clear" -> handleClearLogs(out, request)
                     request.method == "POST" && request.path == "/users" -> handleAddUser(out, request)
                     request.method == "POST" && request.path == "/users/login" -> handleUserLogin(out, request)
+                    request.method == "POST" && request.path.startsWith("/users/") -> handleUpdateUserRole(out, request)
 
                     // DELETE 端点
                     request.method == "DELETE" && request.path.startsWith("/media/") -> handleDelete(out, request)
@@ -851,6 +852,28 @@ class HttpRangeServer(
         }
 
         val result = repository.deleteUser(username)
+        if (result.success) {
+            val response = """{"status":"ok"}"""
+            writeResponse(out, STATUS_OK, MIME_JSON, response.toByteArray().size.toLong(), response.toByteArray())
+        } else {
+            writeStatus(out, STATUS_NOT_FOUND)
+        }
+    }
+
+    private fun handleUpdateUserRole(out: OutputStream, request: HttpRequest) {
+        val username = request.path.removePrefix("/users/")
+        if (username.isEmpty()) {
+            writeStatus(out, STATUS_BAD_REQUEST)
+            return
+        }
+
+        val role = extractJsonString(request.body, "role") ?: ""
+        if (role.isEmpty() || role !in listOf("admin", "editor", "viewer")) {
+            writeStatus(out, STATUS_BAD_REQUEST)
+            return
+        }
+
+        val result = repository.updateUserRole(username, role)
         if (result.success) {
             val response = """{"status":"ok"}"""
             writeResponse(out, STATUS_OK, MIME_JSON, response.toByteArray().size.toLong(), response.toByteArray())
