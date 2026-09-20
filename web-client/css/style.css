@@ -1721,6 +1721,22 @@ body {
     margin-top: 4px;
 }
 
+.device-type-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    background: var(--accent);
+    color: white;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    margin-right: 6px;
+}
+
+.node-device-icon {
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
 .node-actions {
     display: flex;
     gap: 8px;

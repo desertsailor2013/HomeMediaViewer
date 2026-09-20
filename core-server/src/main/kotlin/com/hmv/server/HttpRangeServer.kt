@@ -110,6 +110,7 @@ class HttpRangeServer(
                     request.method == "POST" && request.path == "/proxy/enable" -> handleEnableProxy(out, request)
                     request.method == "POST" && request.path == "/proxy/disable" -> handleDisableProxy(out, request)
                     request.method == "POST" && request.path.matches(PROXY_PATTERN) && request.path.endsWith("/operation") -> handleProxyOperation(out, request)
+                    request.method == "POST" && request.path == "/device/info" -> handleSetDeviceInfo(out, request)
 
                     // DELETE 端点
                     request.method == "DELETE" && request.path.startsWith("/media/") -> handleDelete(out, request)
@@ -120,6 +121,7 @@ class HttpRangeServer(
                     request.path == "/scanpaths" -> handleGetScanPaths(out, request)
                     request.path == "/admin/password" -> handleGetAdminPassword(out, request)
                     request.path == "/proxy/status" -> handleGetProxyStatus(out, request)
+                    request.path == "/device/info" -> handleGetDeviceInfo(out, request)
                     request.path.matches(THUMBNAIL_PATTERN) -> handleThumbnail(out, request)
                     request.path.startsWith("/media/") -> handleStream(out, bufferSize, request)
                     else -> writeStatus(out, STATUS_NOT_FOUND)
@@ -675,6 +677,32 @@ class HttpRangeServer(
         val pattern = "\"$key\"\\s*:\\s*\\{([^}]*)\\}"
         val regex = Regex(pattern)
         return regex.find(json)?.groupValues?.get(1)?.let { "{$it}" }
+    }
+
+    // ---------- 设备信息 ----------
+
+    private fun handleGetDeviceInfo(out: OutputStream, request: HttpRequest) {
+        val deviceType = repository.getDeviceType()
+        val deviceName = repository.getDeviceName()
+        val response = """{"deviceType":"${escapeJson(deviceType)}","deviceName":"${escapeJson(deviceName)}"}"""
+        writeResponse(out, STATUS_OK, MIME_JSON, response.toByteArray().size.toLong(), response.toByteArray())
+    }
+
+    private fun handleSetDeviceInfo(out: OutputStream, request: HttpRequest) {
+        val deviceType = extractJsonString(request.body, "deviceType") ?: ""
+        val deviceName = extractJsonString(request.body, "deviceName") ?: ""
+        if (deviceType.isEmpty()) {
+            writeStatus(out, STATUS_BAD_REQUEST)
+            return
+        }
+        val result = repository.setDeviceInfo(deviceType, deviceName)
+        if (result.success) {
+            val response = """{"status":"ok"}"""
+            writeResponse(out, STATUS_OK, MIME_JSON, response.toByteArray().size.toLong(), response.toByteArray())
+        } else {
+            val response = """{"status":"error","message":"${escapeJson(result.message)}"}"""
+            writeResponse(out, STATUS_BAD_REQUEST, MIME_JSON, response.toByteArray().size.toLong(), response.toByteArray())
+        }
     }
 
     // ---------- 缩略图 ----------

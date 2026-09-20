@@ -138,6 +138,18 @@ interface MediaRepository {
         operation: String,
         params: Map<String, String>
     ): FileOperationResult = FileOperationResult(false, "not supported")
+
+    // ========== 设备信息 ==========
+
+    /** 获取设备类型（phone/pad/pc/harmony/ios/web）。 */
+    fun getDeviceType(): String = "unknown"
+
+    /** 获取设备名称。 */
+    fun getDeviceName(): String = "unknown"
+
+    /** 设置设备信息。 */
+    fun setDeviceInfo(deviceType: String, deviceName: String): FileOperationResult =
+        FileOperationResult(false, "not supported")
 }
 
 /**

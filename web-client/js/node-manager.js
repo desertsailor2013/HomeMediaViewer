@@ -92,11 +92,27 @@ const NodeManager = {
         }
 
         try {
+            // 获取设备信息
+            let deviceType = 'unknown';
+            let deviceName = 'unknown';
+            
+            try {
+                const response = await fetch(`${API.baseUrl}/device/info`);
+                if (response.ok) {
+                    const info = await response.json();
+                    deviceType = info.deviceType || 'unknown';
+                    deviceName = info.deviceName || 'unknown';
+                }
+            } catch (e) {
+                console.warn('获取设备信息失败:', e);
+            }
+
             // 获取当前连接的设备信息
             const device = {
                 host: Device.currentHost,
                 port: Device.currentPort,
-                name: `${Device.currentHost}:${Device.currentPort}`,
+                name: deviceName,
+                deviceType: deviceType,
                 online: true,
                 lastSeen: Date.now()
             };
@@ -138,10 +154,14 @@ const NodeManager = {
                 <div class="node-status">
                     <span class="status-dot ${node.online ? 'online' : 'offline'}"></span>
                 </div>
+                <div class="node-device-icon">
+                    ${this.getDeviceIcon(node.deviceType)}
+                </div>
                 <div class="node-info">
                     <div class="node-name">${this.escapeHtml(node.alias || node.name)}</div>
                     <div class="node-address">${node.host}:${node.port}</div>
                     <div class="node-meta">
+                        <span class="device-type-badge">${this.getDeviceTypeName(node.deviceType)}</span>
                         ${node.hasPassword ? '🔒 已设置密码' : '🔓 无密码'}
                         ${node.lastSeen ? ` · ${this.formatTime(node.lastSeen)}` : ''}
                     </div>
@@ -171,6 +191,40 @@ const NodeManager = {
                 this.removeNode(index);
             });
         });
+    },
+
+    /**
+     * 获取设备类型图标
+     */
+    getDeviceIcon(deviceType) {
+        const icons = {
+            'phone': '📱',
+            'pad': '📱',
+            'tablet': '📱',
+            'pc': '💻',
+            'harmony': '🔵',
+            'ios': '🍎',
+            'web': '🌐',
+            'unknown': '❓'
+        };
+        return icons[deviceType] || icons['unknown'];
+    },
+
+    /**
+     * 获取设备类型名称
+     */
+    getDeviceTypeName(deviceType) {
+        const names = {
+            'phone': '手机',
+            'pad': '平板',
+            'tablet': '平板',
+            'pc': '电脑',
+            'harmony': '鸿蒙',
+            'ios': 'iOS',
+            'web': 'Web',
+            'unknown': '未知'
+        };
+        return names[deviceType] || names['unknown'];
     },
 
     /**
