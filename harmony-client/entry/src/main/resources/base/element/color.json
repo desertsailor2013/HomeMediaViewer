@@ -1,0 +1,24 @@
+{
+  "color": [
+    {
+      "name": "bg_window",
+      "value": "#FFFFFF"
+    },
+    {
+      "name": "bg_surface",
+      "value": "#F5F5F5"
+    },
+    {
+      "name": "text_primary",
+      "value": "#212121"
+    },
+    {
+      "name": "text_secondary",
+      "value": "#757575"
+    },
+    {
+      "name": "divider",
+      "value": "#E0E0E0"
+    }
+  ]
+}
