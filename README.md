@@ -31,23 +31,23 @@
 - **运行日志** — 实时查看设备运行日志，支持清空和导出
 
 ### 用户权限管理
-- **多用户支持** — 管理员/编辑者/访客三种角色
+- **多用户支持** — 管理员/编辑者/访客三种角色（JSON 文件持久化存储）
 - **权限控制** — admin 全部权限，editor 上传/删除，viewer 只读
-- **用户登录** — 支持用户名密码登录，角色权限验证
+- **用户登录** — 支持用户名密码登录（PBKDF2 密码哈希）
 - **用户管理** — 管理员可添加/删除用户，修改用户角色
 
 ### 搜索增强
-- **搜索历史** — 自动保存最近 20 条搜索记录，一键复用
-- **实时搜索建议** — 输入时显示匹配的媒体文件
-- **高级搜索** — 按类型/文件夹/大小范围筛选
-- **全局搜索** — 跨设备搜索媒体文件
+- **搜索历史** — 自动保存最近 20 条搜索记录，一键复用（Web 端实现）
+- **实时搜索建议** — 输入时显示匹配的媒体文件（Web 端实现）
+- **高级搜索** — 按类型/文件夹/大小范围筛选（数据层实现）
+- **全局搜索** — 跨设备搜索媒体文件（数据层实现）
 
 ### 媒体信息增强
-- **媒体元数据** — 显示标题/艺术家/专辑/时长/分辨率/码率/编码/格式
-- **海报墙展示** — 显示媒体海报/封面
-- **标签系统** — 支持媒体标签分类
-- **字幕支持** — 显示关联的字幕文件
-- **播放统计** — 显示播放次数/最后播放时间
+- **媒体元数据** — 显示标题/艺术家/专辑/时长/分辨率/码率/编码/格式（从文件自动提取）
+- **海报墙展示** — 显示媒体海报/封面（待实现）
+- **标签系统** — 支持媒体标签分类（自动生成标签）
+- **字幕支持** — 显示关联的字幕文件（待实现）
+- **播放统计** — 显示播放次数/最后播放时间（待实现）
 
 ### Web 端专属
 - **18 个功能页面** — 媒体库/设备列表/收藏设备/播放队列/播放历史/文件管理/统计面板/网络诊断/快捷键/多语言/数据导出/节点管理/节点统计/用户管理/搜索增强/媒体详情/设置/关于
@@ -59,7 +59,7 @@
 - **MediaStore 媒体扫描** — 自动扫描设备中的视频和音频文件（API 33+ 适配）
 - **ExoPlayer 播放** — 基于 Media3 ExoPlayer，支持 HTTP 流播放
 - **前台 Service** — HTTP 服务绑定前台 Service，后台运行不被系统回收
-- **平板双栏布局** — 大屏设备左侧列表+右侧播放器
+- **平板双栏布局** — `layout-sw600dp` 自适应，大屏设备左侧列表+右侧播放器
 
 ### iOS 端专属
 - **PHPhotoLibrary 媒体扫描** — 本地视频/音频扫描
@@ -92,12 +92,14 @@
 │       ├── RangeParser.kt       HTTP Range 头解析
 │       └── RangeReadable.kt     可 seek 只读源接口
 ├── app/                         Android Phone 端
-│   └── src/main/kotlin/com/hmv/app/
-│       ├── MainActivity.kt      主界面（单栏/双栏自适应）
-│       ├── PlayerActivity.kt    ExoPlayer 播放页
-│       ├── MediaServerService.kt 前台 Service
-│       └── ...                  其他组件
-├── pad/                         Android PAD 端（双栏布局）
+│   ├── src/main/kotlin/com/hmv/app/
+│   │   ├── MainActivity.kt      主界面（单栏/双栏自适应）
+│   │   ├── PlayerActivity.kt    ExoPlayer 播放页
+│   │   ├── MediaServerService.kt 前台 Service
+│   │   └── ...                  其他组件
+│   └── src/main/res/
+│       ├── layout/              手机布局
+│       └── layout-sw600dp/      平板双栏布局
 ├── web-client/                  Web 端（18 页面 + 4 语言）
 │   ├── js/
 │   │   ├── app.js               主应用模块
@@ -242,8 +244,8 @@ xcodebuild -project HomeMediaViewer.xcodeproj -scheme HomeMediaViewer -sdk iphon
 ```bash
 cd harmony-client
 
-# 构建 HAP 包
-hvigorw assembleHap --mode module -p product=default
+# 使用 DevEco Studio 内置的 hvigorw 构建
+# 或通过 DevEco Studio 菜单 Build → Build Hap(s)
 ```
 
 **产物位置：**
@@ -481,7 +483,6 @@ http-server -p 8000 -c-1
 - [x] M5 缩略图 / 播放进度 / 搜索筛选 / 深色模式 / 全屏播放 / 网络感知
 - [x] V2 播放队列 / 媒体分组 / 设备收藏 / 投屏控制 / 播放速度
 - [x] V3 Web 客户端（18 页面 + 4 语言）
-- [x] V3 PAD 客户端（双栏布局）
 - [x] V3 iOS 客户端（SwiftUI）
 - [x] V3 HarmonyOS 客户端（ArkTS）
 - [x] Web 端运行环境检测 + 扫描路径管理
