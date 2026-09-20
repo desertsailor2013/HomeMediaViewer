@@ -111,6 +111,7 @@ class HttpRangeServer(
                     request.method == "POST" && request.path == "/proxy/disable" -> handleDisableProxy(out, request)
                     request.method == "POST" && request.path.matches(PROXY_PATTERN) && request.path.endsWith("/operation") -> handleProxyOperation(out, request)
                     request.method == "POST" && request.path == "/device/info" -> handleSetDeviceInfo(out, request)
+                    request.method == "POST" && request.path == "/logs/clear" -> handleClearLogs(out, request)
 
                     // DELETE 端点
                     request.method == "DELETE" && request.path.startsWith("/media/") -> handleDelete(out, request)
@@ -122,6 +123,9 @@ class HttpRangeServer(
                     request.path == "/admin/password" -> handleGetAdminPassword(out, request)
                     request.path == "/proxy/status" -> handleGetProxyStatus(out, request)
                     request.path == "/device/info" -> handleGetDeviceInfo(out, request)
+                    request.path == "/stats/runtime" -> handleGetRuntimeStats(out, request)
+                    request.path == "/stats/traffic" -> handleGetTrafficStats(out, request)
+                    request.path.startsWith("/logs") -> handleGetLogs(out, request)
                     request.path.matches(THUMBNAIL_PATTERN) -> handleThumbnail(out, request)
                     request.path.startsWith("/media/") -> handleStream(out, bufferSize, request)
                     else -> writeStatus(out, STATUS_NOT_FOUND)
@@ -703,6 +707,95 @@ class HttpRangeServer(
             val response = """{"status":"error","message":"${escapeJson(result.message)}"}"""
             writeResponse(out, STATUS_BAD_REQUEST, MIME_JSON, response.toByteArray().size.toLong(), response.toByteArray())
         }
+    }
+
+    // ---------- 运行时统计 ----------
+
+    private fun handleGetRuntimeStats(out: OutputStream, request: HttpRequest) {
+        val stats = repository.getRuntimeStats()
+        val response = buildString {
+            append('{')
+            append("\"uptime\":${stats.uptime},")
+            append("\"cpuUsage\":${stats.cpuUsage},")
+            append("\"memoryUsed\":${stats.memoryUsed},")
+            append("\"memoryTotal\":${stats.memoryTotal},")
+            append("\"storageUsed\":${stats.storageUsed},")
+            append("\"storageTotal\":${stats.storageTotal},")
+            append("\"batteryLevel\":${stats.batteryLevel},")
+            append("\"batteryCharging\":${stats.batteryCharging},")
+            append("\"networkUpload\":${stats.networkUpload},")
+            append("\"networkDownload\":${stats.networkDownload},")
+            append("\"activeConnections\":${stats.activeConnections},")
+            append("\"totalRequests\":${stats.totalRequests}")
+            append('}')
+        }
+        writeResponse(out, STATUS_OK, MIME_JSON, response.toByteArray().size.toLong(), response.toByteArray())
+    }
+
+    private fun handleGetTrafficStats(out: OutputStream, request: HttpRequest) {
+        val stats = repository.getTrafficStats()
+        val response = buildString {
+            append('{')
+            append("\"totalOutbound\":${stats.totalOutbound},")
+            append("\"totalInbound\":${stats.totalInbound},")
+            
+            append("\"outboundByDevice\":{")
+            stats.outboundByDevice.entries.forEachIndexed { i, (k, v) ->
+                if (i > 0) append(',')
+                append("\"${escapeJson(k)}\":$v")
+            }
+            append("},")
+            
+            append("\"inboundByDevice\":{")
+            stats.inboundByDevice.entries.forEachIndexed { i, (k, v) ->
+                if (i > 0) append(',')
+                append("\"${escapeJson(k)}\":$v")
+            }
+            append("},")
+            
+            append("\"outboundByMedia\":{")
+            stats.outboundByMedia.entries.forEachIndexed { i, (k, v) ->
+                if (i > 0) append(',')
+                append("\"${escapeJson(k)}\":$v")
+            }
+            append("},")
+            
+            append("\"inboundByMedia\":{")
+            stats.inboundByMedia.entries.forEachIndexed { i, (k, v) ->
+                if (i > 0) append(',')
+                append("\"${escapeJson(k)}\":$v")
+            }
+            append('}')
+            
+            append('}')
+        }
+        writeResponse(out, STATUS_OK, MIME_JSON, response.toByteArray().size.toLong(), response.toByteArray())
+    }
+
+    // ---------- 运行日志 ----------
+
+    private fun handleGetLogs(out: OutputStream, request: HttpRequest) {
+        val limit = request.queryParams["limit"]?.toIntOrNull() ?: 100
+        val logs = repository.getLogs(limit)
+        val sb = StringBuilder("[")
+        logs.forEachIndexed { i, log ->
+            if (i > 0) sb.append(',')
+            sb.append('{')
+            sb.append("\"timestamp\":${log.timestamp},")
+            sb.append("\"level\":\"${escapeJson(log.level)}\",")
+            sb.append("\"message\":\"${escapeJson(log.message)}\",")
+            sb.append("\"source\":\"${escapeJson(log.source)}\"")
+            sb.append('}')
+        }
+        sb.append(']')
+        val response = sb.toString()
+        writeResponse(out, STATUS_OK, MIME_JSON, response.toByteArray().size.toLong(), response.toByteArray())
+    }
+
+    private fun handleClearLogs(out: OutputStream, request: HttpRequest) {
+        repository.clearLogs()
+        val response = """{"status":"ok"}"""
+        writeResponse(out, STATUS_OK, MIME_JSON, response.toByteArray().size.toLong(), response.toByteArray())
     }
 
     // ---------- 缩略图 ----------

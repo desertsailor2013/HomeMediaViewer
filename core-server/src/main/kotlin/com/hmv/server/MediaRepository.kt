@@ -150,7 +150,70 @@ interface MediaRepository {
     /** 设置设备信息。 */
     fun setDeviceInfo(deviceType: String, deviceName: String): FileOperationResult =
         FileOperationResult(false, "not supported")
+
+    // ========== 运行时统计 ==========
+
+    /** 获取运行时统计信息。 */
+    fun getRuntimeStats(): RuntimeStats = RuntimeStats()
+
+    /** 获取流量统计。 */
+    fun getTrafficStats(): TrafficStats = TrafficStats()
+
+    /** 记录出站流量（本节点媒体被其他节点播放）。 */
+    fun recordOutboundTraffic(bytes: Long, targetHost: String, mediaId: String) {}
+
+    /** 记录入站流量（本节点播放其他节点媒体）。 */
+    fun recordInboundTraffic(bytes: Long, sourceHost: String, mediaId: String) {}
+
+    /** 获取运行日志。 */
+    fun getLogs(limit: Int = 100): List<LogEntry> = emptyList()
+
+    /** 添加日志条目。 */
+    fun addLog(level: String, message: String, source: String = "server") {}
+
+    /** 清空日志。 */
+    fun clearLogs() {}
 }
+
+/**
+ * 运行时统计信息
+ */
+data class RuntimeStats(
+    val uptime: Long = 0,
+    val cpuUsage: Double = 0.0,
+    val memoryUsed: Long = 0,
+    val memoryTotal: Long = 0,
+    val storageUsed: Long = 0,
+    val storageTotal: Long = 0,
+    val batteryLevel: Int = -1,
+    val batteryCharging: Boolean = false,
+    val networkUpload: Long = 0,
+    val networkDownload: Long = 0,
+    val activeConnections: Int = 0,
+    val totalRequests: Long = 0
+)
+
+/**
+ * 流量统计
+ */
+data class TrafficStats(
+    val totalOutbound: Long = 0,
+    val totalInbound: Long = 0,
+    val outboundByDevice: Map<String, Long> = emptyMap(),
+    val inboundByDevice: Map<String, Long> = emptyMap(),
+    val outboundByMedia: Map<String, Long> = emptyMap(),
+    val inboundByMedia: Map<String, Long> = emptyMap()
+)
+
+/**
+ * 日志条目
+ */
+data class LogEntry(
+    val timestamp: Long,
+    val level: String,
+    val message: String,
+    val source: String
+)
 
 /**
  * 代理通道状态

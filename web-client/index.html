@@ -62,6 +62,10 @@
                 <span class="nav-icon">&#128241;</span>
                 <span class="nav-text" data-i18n="nav.nodes">节点管理</span>
             </a>
+            <a href="#" class="nav-item" data-page="nodestats">
+                <span class="nav-icon">&#128200;</span>
+                <span class="nav-text" data-i18n="nav.nodestats">节点统计</span>
+            </a>
             <a href="#" class="nav-item" data-page="settings">
                 <span class="nav-icon">&#9881;</span>
                 <span class="nav-text" data-i18n="nav.settings">设置</span>
@@ -392,6 +396,44 @@
                 </div>
             </div>
 
+            <!-- ===== 节点统计页面 ===== -->
+            <div id="page-nodestats" class="page">
+                <div class="page-header">
+                    <h3>节点运行统计</h3>
+                    <div class="page-actions">
+                        <button id="btn-refresh-node-stats" class="btn-secondary">刷新</button>
+                    </div>
+                </div>
+                
+                <div class="stats-tabs">
+                    <button class="stats-tab active" data-tab="stats">运行状态</button>
+                    <button class="stats-tab" data-tab="traffic">流量统计</button>
+                    <button class="stats-tab" data-tab="logs">运行日志</button>
+                </div>
+                
+                <div class="stats-content" data-tab="stats">
+                    <div id="runtime-stats-container" class="stats-container">
+                        <div class="empty-hint"><p>加载中...</p></div>
+                    </div>
+                </div>
+                
+                <div class="stats-content hidden" data-tab="traffic">
+                    <div id="traffic-stats-container" class="stats-container">
+                        <div class="empty-hint"><p>加载中...</p></div>
+                    </div>
+                </div>
+                
+                <div class="stats-content hidden" data-tab="logs">
+                    <div class="log-toolbar">
+                        <button id="btn-clear-logs" class="btn-danger">清空日志</button>
+                        <button id="btn-export-logs" class="btn-secondary">导出日志</button>
+                    </div>
+                    <div id="logs-container" class="logs-container">
+                        <div class="empty-hint"><p>加载中...</p></div>
+                    </div>
+                </div>
+            </div>
+
             <!-- ===== 数据导出页面 ===== -->
             <div id="page-export" class="page">
                 <div class="page-header">
@@ -651,6 +693,7 @@
     <script src="js/environment.js"></script>
     <script src="js/mobile-app.js"></script>
     <script src="js/node-manager.js"></script>
+    <script src="js/node-stats.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
