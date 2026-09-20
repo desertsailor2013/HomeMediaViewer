@@ -30,8 +30,27 @@
 - **流量统计** — 按设备/媒体统计出站（被点播）和入站（点播他人）流量
 - **运行日志** — 实时查看设备运行日志，支持清空和导出
 
+### 用户权限管理
+- **多用户支持** — 管理员/编辑者/访客三种角色
+- **权限控制** — admin 全部权限，editor 上传/删除，viewer 只读
+- **用户登录** — 支持用户名密码登录，角色权限验证
+- **用户管理** — 管理员可添加/删除用户，修改用户角色
+
+### 搜索增强
+- **搜索历史** — 自动保存最近 20 条搜索记录，一键复用
+- **实时搜索建议** — 输入时显示匹配的媒体文件
+- **高级搜索** — 按类型/文件夹/大小范围筛选
+- **全局搜索** — 跨设备搜索媒体文件
+
+### 媒体信息增强
+- **媒体元数据** — 显示标题/艺术家/专辑/时长/分辨率/码率/编码/格式
+- **海报墙展示** — 显示媒体海报/封面
+- **标签系统** — 支持媒体标签分类
+- **字幕支持** — 显示关联的字幕文件
+- **播放统计** — 显示播放次数/最后播放时间
+
 ### Web 端专属
-- **15 个功能页面** — 媒体库/设备列表/收藏设备/播放队列/播放历史/文件管理/统计面板/网络诊断/快捷键/多语言/数据导出/节点管理/节点统计/设置/关于
+- **18 个功能页面** — 媒体库/设备列表/收藏设备/播放队列/播放历史/文件管理/统计面板/网络诊断/快捷键/多语言/数据导出/节点管理/节点统计/用户管理/搜索增强/媒体详情/设置/关于
 - **4 语言国际化** — zh-CN / en / ja / ko，130+ 翻译键
 - **运行环境检测** — 自动识别 PC/手机/平板，PC 端支持本地扫描路径管理
 - **移动端 APP 引导** — 移动端访问时提示安装原生 APP，支持深链接跳转
@@ -67,8 +86,8 @@
 ```
 ├── core-server/                 共享核心模块（纯 Kotlin/JVM，零依赖）
 │   └── src/main/kotlin/com/hmv/server/
-│       ├── HttpRangeServer.kt   HTTP+Range 服务 + 文件管理 + 扫描路径 + 设备信息 + 统计 + 日志
-│       ├── MediaRepository.kt   媒体数据源抽象 + MediaItem 模型 + 代理通道接口
+│       ├── HttpRangeServer.kt   HTTP+Range 服务 + 文件管理 + 扫描路径 + 设备信息 + 统计 + 日志 + 用户管理 + 媒体元数据 + 搜索
+│       ├── MediaRepository.kt   媒体数据源抽象 + MediaItem 模型 + 代理通道 + 用户权限 + 元数据接口
 │       ├── FileMediaRepository.kt 文件系统实现
 │       ├── RangeParser.kt       HTTP Range 头解析
 │       └── RangeReadable.kt     可 seek 只读源接口
@@ -79,7 +98,7 @@
 │       ├── MediaServerService.kt 前台 Service
 │       └── ...                  其他组件
 ├── pad/                         Android PAD 端（双栏布局）
-├── web-client/                  Web 端（15 页面 + 4 语言）
+├── web-client/                  Web 端（18 页面 + 4 语言）
 │   ├── js/
 │   │   ├── app.js               主应用模块
 │   │   ├── api.js               API 封装
@@ -89,6 +108,9 @@
 │   │   ├── mobile-app.js        移动端 APP 检测
 │   │   ├── node-manager.js      设备节点管理
 │   │   ├── node-stats.js        节点运行统计与日志
+│   │   ├── user-manager.js      用户权限管理
+│   │   ├── search-enhanced.js   搜索增强（历史/建议/高级）
+│   │   ├── media-metadata.js    媒体元数据展示
 │   │   └── ...                  其他模块
 │   └── index.html               主页面
 ├── harmony-client/              鸿蒙端（ArkTS）
@@ -141,7 +163,9 @@ open HomeMediaViewer.xcodeproj   # 打开 Xcode
 | `/media/{id}` | GET | 返回整文件字节流（200） |
 | `/media/{id}` + Range | GET | 206 Partial Content |
 | `/media/{id}/thumbnail` | GET | 返回缩略图（JPEG/PNG） |
+| `/media/{id}/metadata` | GET | 获取媒体元数据（分辨率/码率/时长等） |
 | `/play` | POST | 投屏控制指令 |
+| `/search` | GET | 全局搜索媒体（支持 q/type/folder 参数） |
 
 ### 文件管理
 | 端点 | 方法 | 说明 |
@@ -180,6 +204,15 @@ open HomeMediaViewer.xcodeproj   # 打开 Xcode
 | `/logs` | GET | 获取运行日志 |
 | `/logs/clear` | POST | 清空日志 |
 
+### 用户权限管理
+| 端点 | 方法 | 说明 |
+|------|------|------|
+| `/users` | GET | 获取用户列表 |
+| `/users` | POST | 添加用户（username/password/role） |
+| `/users/{username}` | DELETE | 删除用户 |
+| `/users/{username}` | POST | 更新用户角色 |
+| `/users/login` | POST | 用户登录验证 |
+
 ## 工作原理
 
 ```
@@ -198,6 +231,7 @@ open HomeMediaViewer.xcodeproj   # 打开 Xcode
 │  │              core-server HTTP API            │                  │
 │  │  /media  /play  /upload  /scanpaths  ...    │                  │
 │  │  /admin  /proxy  /device  /stats    /logs   │                  │
+│  │  /users  /search  /media/{id}/metadata      │                  │
 │  └─────────────────────────────────────────────┘                  │
 │         ▲                               ▲                          │
 │         │                               │                          │
@@ -212,6 +246,9 @@ open HomeMediaViewer.xcodeproj   # 打开 Xcode
 │  - 运行统计: CPU/内存/存储/电池/网络                                │
 │  - 流量统计: 按设备/媒体统计出站入站流量                            │
 │  - 运行日志: 实时查看设备运行日志                                   │
+│  - 用户管理: 多用户/角色权限                                        │
+│  - 搜索增强: 搜索历史/实时建议/高级搜索                             │
+│  - 媒体信息: 元数据/海报/标签/字幕                                  │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
 ```
@@ -223,6 +260,8 @@ open HomeMediaViewer.xcodeproj   # 打开 Xcode
 5. 投屏 → 点击投屏按钮 → 选择目标设备 → `POST /play` 发送播放指令
 6. 节点管理 → Web 端查看在线设备 → 输入管理密码 → 远程管理资源
 7. 运行统计 → Web 端查看各设备 CPU/内存/流量等运行状态
+8. 用户登录 → 输入用户名密码 → 根据角色权限操作
+9. 搜索 → 输入关键词 → 实时建议/搜索历史/高级筛选
 
 ## 权限说明
 
@@ -255,6 +294,7 @@ open HomeMediaViewer.xcodeproj   # 打开 Xcode
 - R8 混淆 + 资源缩减（Release 构建）
 - 管理密码验证保护设备远程管理权限
 - 代理通道密码验证防止未授权访问
+- 多用户角色权限控制（admin/editor/viewer）
 
 ## 环境要求
 
@@ -272,7 +312,7 @@ open HomeMediaViewer.xcodeproj   # 打开 Xcode
 - [x] M4 跨设备播放
 - [x] M5 缩略图 / 播放进度 / 搜索筛选 / 深色模式 / 全屏播放 / 网络感知
 - [x] V2 播放队列 / 媒体分组 / 设备收藏 / 投屏控制 / 播放速度
-- [x] V3 Web 客户端（15 页面 + 4 语言）
+- [x] V3 Web 客户端（18 页面 + 4 语言）
 - [x] V3 PAD 客户端（双栏布局）
 - [x] V3 iOS 客户端（SwiftUI）
 - [x] V3 HarmonyOS 客户端（ArkTS）
@@ -283,6 +323,9 @@ open HomeMediaViewer.xcodeproj   # 打开 Xcode
 - [x] 运行时统计（CPU/内存/存储/电池/网络）
 - [x] 流量统计（按设备/媒体统计出站入站）
 - [x] 运行日志（查看/清空/导出）
+- [x] 用户权限管理（多用户/角色权限）
+- [x] 搜索增强（搜索历史/实时建议/高级搜索）
+- [x] 媒体信息增强（元数据/海报/标签/字幕）
 - [ ] CI/CD 自动构建
 - [ ] 鸿蒙 APP 编译验证（需 DevEco Studio）
 
