@@ -71,6 +71,8 @@
 - **PHPhotoLibrary 媒体扫描** — 本地视频/音频扫描
 - **AVPlayer 播放** — 原生播放器 + AirPlay 投屏
 - **SwiftUI 界面** — 现代化声明式 UI
+- **HTTP Server** — 基于 NWListener 的流媒体服务
+- **mDNS 服务注册** — 自动注册到局域网供其他设备发现
 
 ### 鸿蒙端专属
 - **MediaKit 媒体扫描** — PhotoAccessHelper 本地媒体访问
