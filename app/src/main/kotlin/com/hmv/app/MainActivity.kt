@@ -6,17 +6,23 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
 import android.text.Editable
 import android.text.TextWatcher
+import android.view.View
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.media3.common.MediaItem as ExoMediaItem
+import androidx.media3.common.Player
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.PlayerView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.hmv.server.MediaItem
@@ -44,6 +50,14 @@ class MainActivity : AppCompatActivity() {
         onFavoriteClicked = { onFavoriteClicked(it) }
     )
 
+    // 平板双栏模式相关
+    private var isDualPane = false
+    private var exoPlayer: ExoPlayer? = null
+    private var playerView: PlayerView? = null
+    private var playerContainer: View? = null
+    private var rightPaneHint: TextView? = null
+    private var currentPlayingUrl: String? = null
+
     private val connection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
             val localBinder = binder as MediaServerService.LocalBinder
@@ -69,6 +83,14 @@ class MainActivity : AppCompatActivity() {
 
         favoritesManager = DeviceFavoritesManager(this)
         deviceAdapter.setFavoritesManager(favoritesManager)
+
+        // 检测双栏模式
+        isDualPane = findViewById<View>(R.id.right_pane) != null
+        if (isDualPane) {
+            playerView = findViewById(R.id.player_view)
+            playerContainer = findViewById(R.id.player_container)
+            rightPaneHint = findViewById(R.id.right_pane_hint)
+        }
 
         val mediaList = findViewById<RecyclerView>(R.id.media_list)
         mediaList.layoutManager = LinearLayoutManager(this)
@@ -325,25 +347,72 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun onMediaClicked(item: MediaItem) {
-        val items = mediaAdapter.getCurrentItems()
-        val index = items.indexOfFirst { it.id == item.id }
-        if (index >= 0 && items.size > 1) {
-            playAll(items, index)
+        val device = currentDevice
+        val port = service?.port
+
+        val url = if (device != null) {
+            remoteClient.getMediaUrl(
+                RemoteMediaClient.RemoteDevice(device.name, device.host, device.port),
+                item.id
+            )
+        } else if (port != null) {
+            "http://127.0.0.1:$port/media/${item.id}"
         } else {
-            // 单文件播放（兼容旧逻辑）
-            val device = currentDevice
-            if (device != null) {
-                val url = remoteClient.getMediaUrl(
-                    RemoteMediaClient.RemoteDevice(device.name, device.host, device.port),
-                    item.id
-                )
-                startActivity(PlayerActivity.createIntent(this, url, item.title, item.id))
+            return
+        }
+
+        if (isDualPane) {
+            // 平板双栏模式：在右侧嵌入播放器播放
+            playInEmbeddedPlayer(url, item.title)
+        } else {
+            // 手机模式：启动独立播放器 Activity
+            val items = mediaAdapter.getCurrentItems()
+            val index = items.indexOfFirst { it.id == item.id }
+            if (index >= 0 && items.size > 1) {
+                playAll(items, index)
             } else {
-                val port = service?.port ?: return
-                val url = "http://127.0.0.1:$port/media/${item.id}"
                 startActivity(PlayerActivity.createIntent(this, url, item.title, item.id))
             }
         }
+    }
+
+    /**
+     * 平板双栏模式：在右侧嵌入播放器中播放
+     */
+    private fun playInEmbeddedPlayer(url: String, title: String) {
+        // 显示播放器容器，隐藏提示
+        rightPaneHint?.visibility = View.GONE
+        playerContainer?.visibility = View.VISIBLE
+
+        // 更新标题
+        findViewById<TextView>(R.id.player_title)?.text = title
+
+        // 初始化 ExoPlayer
+        if (exoPlayer == null) {
+            exoPlayer = ExoPlayer.Builder(this).build()
+            playerView?.player = exoPlayer
+        }
+
+        // 设置媒体并播放
+        val mediaItem = ExoMediaItem.fromUri(Uri.parse(url))
+        exoPlayer?.apply {
+            setMediaItem(mediaItem)
+            prepare()
+            playWhenReady = true
+        }
+
+        currentPlayingUrl = url
+    }
+
+    /**
+     * 平板模式：停止嵌入式播放器
+     */
+    private fun stopEmbeddedPlayer() {
+        exoPlayer?.release()
+        exoPlayer = null
+        playerContainer?.visibility = View.GONE
+        rightPaneHint?.visibility = View.VISIBLE
+        currentPlayingUrl = null
     }
 
     private fun onDeviceClicked(device: NsdHelper.DiscoveredDevice) {
@@ -404,6 +473,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        stopEmbeddedPlayer()
         networkMonitor?.stopListening()
         networkMonitor = null
         nsdHelper?.stopDiscovery()
@@ -412,5 +482,15 @@ class MainActivity : AppCompatActivity() {
             unbindService(connection)
             bound = false
         }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        exoPlayer?.playWhenReady = false
+    }
+
+    override fun onResume() {
+        super.onResume()
+        exoPlayer?.playWhenReady = true
     }
 }
