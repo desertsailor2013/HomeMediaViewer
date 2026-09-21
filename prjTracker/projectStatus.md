@@ -1,7 +1,7 @@
 # HomeMediaViewer — 工程状态记录
 
-> 更新时间：2026-09-19
-> 目标：局域网内多台设备（手机/PAD/PC）互相发现、浏览、点播彼此的音视频文件，无需拷贝源文件。
+> 更新时间：2026-09-21
+> 目标：局域网内多台设备（Android/iOS/鸿蒙/Web）互相发现、浏览、点播彼此的音视频文件，无需拷贝源文件。
 
 ---
 
@@ -14,93 +14,174 @@
 | M3 mDNS 设备发现 | v0.1 | ✅ 完成 | 局域网自动发现 |
 | M4 跨设备播放 | v0.1 | ✅ 完成 | 含网络断开检测 |
 | M5 缩略图/进度/搜索/深色/全屏/离线提示 | v0.1 | ✅ 完成 | 2026-09-18 全部实现 |
-| 代码质量优化（安全/泄漏/性能/规范） | v0.1 | ✅ 完成 | 19 项改进全部修复（2026-09-19） |
-| **V2 功能增强** | **v0.2** | **✅ 完成** | 播放队列 / 媒体分组 / 设备收藏 / 投屏控制 / 播放变速（2026-09-19） |
-| **V2 优化点** | **v0.2** | **✅ 完成** | 分组可折叠 / 队列管理面板 / 设备选择器 / 收藏自动重连 / 速度持久化（2026-09-19） |
-| **V3 Web 客户端** | **v0.3** | **✅ 完成** | 13 页面 / 15 文件 / 3580 行 / 4 语言国际化（2026-09-19） |
-| **V3 后端 API 扩展** | **v0.3** | **✅ 完成** | 文件上传/删除/重命名/新建文件夹（2026-09-19） |
-| **V3 PAD 客户端** | **v0.3** | **⏳ 待开发** | Android Tablet 双栏布局 |
+| 代码质量优化（安全/泄漏/性能/规范） | v0.1 | ✅ 完成 | 19 项改进全部修复 |
+| V2 功能增强 | v0.2 | ✅ 完成 | 播放队列/媒体分组/设备收藏/投屏控制/播放速度 |
+| V2 优化点 | v0.2 | ✅ 完成 | 分组可折叠/队列管理面板/设备选择器/收藏自动重连/速度持久化 |
+| V3 Web 客户端 | v0.3 | ✅ 完成 | 21 个 JS 模块 / 4 语言国际化 / 18 个功能页面 |
+| V3 后端 API 扩展 | v0.3 | ✅ 完成 | 文件上传/删除/重命名/新建文件夹 |
+| V3 Android PAD 客户端 | v0.3 | ✅ 完成 | layout-sw600dp 双栏布局 |
+| V3 iOS 客户端 | v0.3 | ✅ 完成 | SwiftUI + AVPlayer + HTTP Server |
+| V3 HarmonyOS 客户端 | v0.3 | ✅ 完成 | ArkTS + AVPlayer + HTTP Server |
+| V3 节点管理与监控 | v0.3 | ✅ 完成 | 设备类型显示/代理通道/运行统计/日志 |
+| V3 用户权限管理 | v0.3 | ✅ 完成 | 多用户/角色权限/PBKDF2密码哈希 |
+| V3 搜索增强 | v0.3 | ✅ 完成 | 搜索历史/实时建议/高级搜索 |
+| V3 媒体元数据 | v0.3 | ✅ 完成 | 标签系统/基础元数据提取 |
 
 ---
 
 ## 2. 已实现功能
 
 ### 2.1 core-server（共享核心模块）
-- **HTTP API**：
-  - `GET /media` → JSON 媒体列表（支持 `?path=` 子目录浏览）
-  - `GET /media/{id}` → 整文件字节流（200）/ Range 请求（206）
-  - `GET /media/{id}/thumbnail` → 缩略图（JPEG/PNG）
-  - `POST /upload` → multipart 文件上传（最大 500MB）
-  - `DELETE /media/{id}` → 删除文件
-  - `POST /media/{id}/rename` → 重命名文件
-  - `POST /folder` → 新建文件夹
-  - `POST /play` → 投屏控制指令
-- **MediaRepository 接口**：list/findById/openStream/openForRange/getThumbnail/uploadFile/deleteFile/renameFile/createFolder
-- **实现**：
-  - `FileMediaRepository`：桌面/测试用，直接文件系统访问
-  - `ContentMediaRepository`：Android 端，MediaStore content:// URI
-- **单元测试**：22 项全部通过
 
-### 2.2 Phone 客户端（Android）
-- ExoPlayer 播放 + 进度保存 + 横屏全屏
-- mDNS 设备发现 + 跨设备播放
-- 搜索/筛选/缩略图/深色模式
-- 播放队列 + 媒体分组 + 设备收藏 + 投屏控制 + 播放速度
-- 优化：分组可折叠 / 队列管理面板 / 设备选择器 / 收藏自动重连 / 速度持久化
+**HTTP API（31 个端点）：**
 
-### 2.3 Web 客户端（PC 浏览器）
-- **15 个文件，3580 行代码**
-- **13 个页面**：媒体库/设备列表/收藏设备/播放队列/播放历史/文件管理/统计面板/网络诊断/快捷键/多语言/数据导出/设置/关于
-- **10 个功能模块**：api/device/player/queue/favorites/history/filemanager/stats/network/shortcuts/i18n/export/settings
-- **4 语言国际化**：zh-CN/en/ja/ko，130+ 翻译键
-- **文件管理**：浏览/搜索/上传/删除/重命名/新建文件夹（前后端打通）
+| 类别 | 端点 | 方法 |
+|------|------|------|
+| 媒体 | `/media` | GET |
+| 媒体 | `/media/{id}` | GET (200/206) |
+| 媒体 | `/media/{id}/thumbnail` | GET |
+| 媒体 | `/media/{id}/metadata` | GET |
+| 搜索 | `/search?q=&type=&folder=` | GET |
+| 投屏 | `/play` | POST |
+| 文件管理 | `/upload` | POST |
+| 文件管理 | `/media/{id}` | DELETE |
+| 文件管理 | `/media/{id}/rename` | POST |
+| 文件管理 | `/folder` | POST |
+| 扫描路径 | `/scanpaths` | GET/POST |
+| 扫描路径 | `/scanpaths/{path}` | DELETE |
+| 扫描路径 | `/scanpaths/rescan` | POST |
+| 设备信息 | `/device/info` | GET/POST |
+| 管理密码 | `/admin/password` | GET/POST |
+| 管理密码 | `/admin/verify` | POST |
+| 代理通道 | `/proxy/status` | GET |
+| 代理通道 | `/proxy/enable` | POST |
+| 代理通道 | `/proxy/disable` | POST |
+| 代理通道 | `/proxy/{device}/operation` | POST |
+| 统计 | `/stats/runtime` | GET |
+| 统计 | `/stats/traffic` | GET |
+| 日志 | `/logs` | GET |
+| 日志 | `/logs/clear` | POST |
+| 用户 | `/users` | GET/POST |
+| 用户 | `/users/{username}` | DELETE/POST |
+| 用户 | `/users/login` | POST |
+
+**MediaRepository 接口：**
+- list/findById/openStream/openForRange/getThumbnail
+- uploadFile/deleteFile/renameFile/createFolder
+- getScanPaths/addScanPath/removeScanPath/rescanAll
+- getAdminPassword/setAdminPassword/verifyAdminPassword
+- getProxyStatus/enableProxy/disableProxy/proxyOperation
+- getDeviceType/getDeviceName/setDeviceInfo
+- getRuntimeStats/getTrafficStats/getLogs/addLog/clearLogs
+- getUsers/addUser/deleteUser/updateUserRole/verifyUser/checkPermission
+- getMediaMetadata/searchMedia
+
+**实现：**
+- `FileMediaRepository`：桌面/测试用，直接文件系统访问
+- `ContentMediaRepository`：Android 端，MediaStore content:// URI
+
+**单元测试：** 22 项全部通过
+
+### 2.2 Android 客户端
+
+| 功能模块 | 实现状态 |
+|----------|----------|
+| MediaStore 媒体扫描 | ✅ 已实现 |
+| ExoPlayer 播放 | ✅ 已实现 |
+| 前台 Service | ✅ 已实现 |
+| HTTP Server | ✅ 已实现（Java Socket） |
+| mDNS 设备发现 | ✅ 已实现 |
+| mDNS 服务注册 | ✅ 已实现 |
+| 播放进度保存 | ✅ 已实现 |
+| 播放速度调节 | ✅ 已实现 |
+| 播放队列 | ✅ 已实现 |
+| 媒体分组 | ✅ 已实现 |
+| 设备收藏 | ✅ 已实现 |
+| 投屏控制 | ✅ 已实现 |
+| 缩略图 | ✅ 已实现 |
+| 搜索筛选 | ✅ 已实现 |
+| 深色模式 | ✅ 已实现 |
+| 平板双栏布局 | ✅ 已实现 |
+| 网络状态感知 | ✅ 已实现 |
+
+### 2.3 iOS 客户端
+
+| 功能模块 | 实现状态 |
+|----------|----------|
+| PHPhotoLibrary 媒体扫描 | ✅ 已实现 |
+| AVPlayer 播放 | ✅ 已实现 |
+| SwiftUI 界面 | ✅ 已实现 |
+| HTTP Server | ✅ 已实现（NWListener） |
+| mDNS 设备发现 | ✅ 已实现 |
+| mDNS 服务注册 | ✅ 已实现 |
+| 播放进度保存 | ✅ 已实现 |
+| 播放速度调节 | ✅ 已实现 |
+| 播放队列 | ✅ 已实现 |
+| 媒体分组 | ✅ 已实现 |
+| 设备收藏 | ✅ 已实现 |
+| 投屏控制 | ✅ 已实现 |
+| 文件管理 | ✅ 已实现 |
+
+### 2.4 HarmonyOS 客户端
+
+| 功能模块 | 实现状态 |
+|----------|----------|
+| MediaKit 媒体扫描 | ✅ 已实现 |
+| AVPlayer 播放 | ✅ 已实现 |
+| ArkTS 声明式 UI | ✅ 已实现 |
+| HTTP Server | ✅ 已实现（Native Socket） |
+| mDNS 设备发现 | ✅ 已实现 |
+| mDNS 服务注册 | ✅ 已实现 |
+| 播放进度保存 | ✅ 已实现 |
+| 播放速度调节 | ✅ 已实现 |
+| 播放队列 | ✅ 已实现 |
+| 媒体分组 | ✅ 已实现 |
+| 设备收藏 | ✅ 已实现 |
+| 投屏控制 | ✅ 已实现 |
+| 文件管理 | ✅ 已实现 |
+
+### 2.5 Web 客户端
+
+| 功能模块 | 实现状态 |
+|----------|----------|
+| 21 个 JS 模块 | ✅ 已实现 |
+| 18 个功能页面 | ✅ 已实现 |
+| 4 语言国际化 | ✅ 已实现 |
+| 运行环境检测 | ✅ 已实现 |
+| 移动端 APP 引导 | ✅ 已实现 |
+| 设备节点管理 | ✅ 已实现 |
+| 节点运行统计 | ✅ 已实现 |
+| 用户权限管理 | ✅ 已实现 |
+| 搜索增强 | ✅ 已实现 |
+| 媒体元数据 | ✅ 已实现 |
+| 文件管理 | ✅ 已实现 |
 
 ---
 
 ## 3. 验证结果
 
-- core-server 单测 **22/22 通过**：
-  - RangeParserTest：10 项
-  - HttpRangeServerTest：12 项
+- core-server 单测 **22/22 通过**
 - `app:compileDebugKotlin` 编译通过
 - `app:assembleRelease` R8 混淆构建通过
+- README 与代码一致性检查通过
 
 ---
 
-## 4. V3 多端拆分规划
+## 4. 多端架构
 
-详见 `prjTracker/v3-plan.md`
+| 端 | 平台 | HTTP Server | mDNS 服务 | 状态 |
+|----|------|-------------|-----------|------|
+| Phone | Android | HttpRangeServer.kt (Java Socket) | ✅ | ✅ 完成 |
+| PAD | Android Tablet | HttpRangeServer.kt (Java Socket) | ✅ | ✅ 完成 |
+| PC | Web (浏览器) | ❌ 不支持 | ❌ | ✅ 完成 |
+| Phone | iOS | HttpServer.swift (NWListener) | ✅ | ✅ 完成 |
+| Phone | HarmonyOS | HttpServer.ets (Native Socket) | ✅ | ✅ 完成 |
 
-| 端 | 平台 | UI 特征 | 版本 | 状态 |
-|----|------|---------|------|------|
-| Phone | Android | 单栏布局 | v0.2 | ✅ 完成 |
-| PAD | Android Tablet | 双栏布局 | v0.3 | ⏳ 待开发 |
-| PC | Web (浏览器) | 响应式布局 | v0.3 | ✅ 完成 |
-
-**共享核心**：core-server 模块（纯 Kotlin/JVM），所有端通过 HTTP API 通信。
-
----
-
-## 5. PAD 端开发计划
-
-### 目标
-在 Phone 端基础上，针对平板大屏优化 UI 布局，提供双栏/多栏体验。
-
-### 核心特性
-- **双栏布局**：左侧设备列表/媒体列表，右侧播放器/详情
-- **自适应布局**：根据屏幕尺寸自动切换单栏/双栏/三栏
-- **大屏优化**：更大的缩略图、更多的信息密度
-- **手势支持**：拖拽分屏、滑动返回
-
-### 技术方案
-- 复用 core-server 模块（HTTP API）
-- 新建 `pad` 模块，基于 phone 模块改造 UI
-- 使用 Android Tablet 专用布局资源（layout-sw600dp/layout-sw720dp）
-- ExoPlayer 全屏播放优化
+**共享核心**：core-server 模块（纯 Kotlin/JVM），Android 端通过 HTTP API 通信。
 
 ---
 
-## 6. 环境说明
+## 5. 环境说明
 
 | 项 | 值 |
 |----|----|
@@ -112,3 +193,5 @@
 | Coil | 2.7.0 |
 | Media3 | 1.4.1 |
 | Material | 1.12.0 |
+| iOS | Swift 5.9 / iOS 16.0+ |
+| HarmonyOS | ArkTS / HarmonyOS 5.0+ |
